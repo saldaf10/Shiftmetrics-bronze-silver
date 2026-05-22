@@ -1,6 +1,6 @@
 # ShiftMetrics Analytics — Contexto General y Hoja de Ruta
 **Proyecto Integrador — Master Data Science & Analytics — EAFIT**
-**Equipo SI7006 · Actualizado: 2026-05-22**
+**Equipo SI7006 · Actualizado: 2026-05-22 (Gold completada)**
 
 ---
 
@@ -29,8 +29,8 @@ Bronze (GCS raw)  →  Silver (Parquet limpio)  →  Gold (BigQuery sprint_featu
 |---|---|---|
 | **Bronze** | ✅ Completa | 4 datasets en GCS, sin cambios necesarios |
 | **Silver** | ✅ Completa | 4 jobs escritos, ejecutados y verificados en Dataproc |
-| **Gold** | ⏳ Pendiente | **SIGUIENTE PASO** — unir Silver en BigQuery sprint_features |
-| **ML Pipeline** | ⏳ Pendiente | Requiere Gold |
+| **Gold** | ✅ Completa | `sprint_features` en BigQuery — 42,747 filas, 619 proyectos, prevalencia 70.5% |
+| **ML Pipeline** | ⏳ **SIGUIENTE PASO** | Requiere ajuste de prevalencia + imputación CK |
 | **Deploy Cloud Run** | ⏳ Pendiente | Requiere ML |
 
 ---
@@ -116,9 +116,47 @@ Todos los scripts están en `gs://shiftmetrics-bronze/scripts/`. Outputs verific
 
 ---
 
-## 6. Capa Gold — `sprint_features` en BigQuery
+## 6. Capa Gold — `sprint_features` en BigQuery ✅ COMPLETA
 
-Tabla final: **una fila por sprint**. Se construye uniendo las 4 fuentes Silver.
+Tabla final: **una fila por sprint**. Construida uniendo las 4 fuentes Silver vía job PySpark en Dataproc.
+
+### Resultados verificados en BigQuery
+
+| Métrica | Valor |
+|---|---|
+| Total filas | **42,747** |
+| Proyectos distintos | 619 |
+| Sprints distintos | 250 |
+| Defectos positivos | 30,116 |
+| Prevalencia `defecto_escapado=1` | **70.5%** |
+
+**Desglose de filas por fuente Silver:**
+
+| Fuente | Filas aportadas |
+|---|---|
+| Apache Jira (base del JOIN) | 42,747 |
+| GHArchive (joined) | 205 |
+| Red Hat Jira (joined) | 17,475 |
+| PROMISE CK (joined) | 11 proyectos |
+
+### Script ejecutado
+`gs://shiftmetrics-bronze/scripts/gold_job_sprint_features.py`
+
+### Notas de producción
+- El flag `--jars` **no aplica al crear clusters** en Dataproc — aplica al enviar jobs.
+  Dataproc incluye el conector BigQuery por defecto, por lo que el job corrió **sin `--jars`**.
+- Cluster usado: `shiftmetrics-cluster` con `n1-standard-2` (2 CPUs/nodo × 3 nodos = 6 CPUs),
+  dentro de la cuota de 8 CPUs.
+- **Cluster eliminado** tras verificar la tabla para conservar créditos.
+
+### Consideraciones para ML
+- **Prevalencia alta (70.5%):** Viable, pero se recomienda evaluar:
+  - Undersampling de clase mayoritaria, o
+  - Ajustar umbral de `cycle_time_days` de 30 → 60 días para reducir positivos
+- **NULLs en métricas CK:** `avg_wmc`, `avg_cbo`, etc. son NULL para proyectos fuera de PROMISE.
+  Opciones: imputar por mediana, o filtrar a proyectos Apache con datos CK completos.
+
+Tabla destino:
 
 ```sql
 sprint_id            STRING    -- {project}_{sprint_number}
@@ -171,12 +209,13 @@ change_failure_rate = np.random.beta(a=2.6, b=7.4, size=n_sprints)        # medi
 | 2 | Silver Job 02: Apache Jira | ✅ Ejecutado y verificado |
 | 3 | Silver Job 03: Red Hat Jira | ✅ Ejecutado y verificado |
 | 4 | Silver Job 04: GHArchive | ✅ Ejecutado y verificado |
-| **5** | **Crear dataset BigQuery `shiftmetrics_gold`** | **⏳ SIGUIENTE** |
-| **6** | **Escribir Gold job PySpark (unión de 4 Silver → sprint_features)** | **⏳ SIGUIENTE** |
-| **7** | **Ejecutar Gold job en Dataproc con conector BigQuery** | **⏳ SIGUIENTE** |
-| 8 | Dataset 5 — Simulador Sintético (SimPy + Faker) | ⏳ Parámetros listos |
-| 9 | ML Pipeline (LR baseline + XGBoost + SHAP) | ⏳ |
-| 10 | Deploy Cloud Run (API REST) | ⏳ |
+| 5 | Crear dataset BigQuery `shiftmetrics_gold` | ✅ Ya existía — verificado |
+| 6 | Escribir Gold job PySpark (unión de 4 Silver → sprint_features) | ✅ Ejecutado |
+| 7 | Ejecutar Gold job en Dataproc con conector BigQuery | ✅ 42,747 filas verificadas |
+| **8** | **Decisión prevalencia: undersample o ajustar umbral cycle_time** | **⏳ SIGUIENTE** |
+| **9** | **ML Pipeline (LR baseline + XGBoost + SHAP)** | **⏳ SIGUIENTE** |
+| 10 | Dataset 5 — Simulador Sintético (SimPy + Faker) | ⏳ Parámetros listos |
+| 11 | Deploy Cloud Run (API REST) | ⏳ |
 
 **Nota Gold:** recrear cluster con jar BigQuery:
 ```bash
@@ -190,4 +229,4 @@ gcloud dataproc clusters create shiftmetrics-cluster \
 
 ---
 
-*Documento actualizado 2026-05-21 · ShiftMetrics Analytics · EAFIT*
+*Documento actualizado 2026-05-22 · ShiftMetrics Analytics · EAFIT*
