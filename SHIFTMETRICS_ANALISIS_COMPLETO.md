@@ -167,16 +167,6 @@ Apache Jira llegó en Bronze como dump de MongoDB (formato `.bson.gz`). Spark y 
 5. Escribe Parquet en chunks: primer chunk `overwrite`, resto `append`
 6. Sanitiza nombres de columnas: reemplaza `.`, `-`, espacios por guiones bajos
 
-### Errores encontrados y soluciones
-
-| # | Error | Job afectado | Solución |
-|---|---|---|---|
-| 1 | `--pip-packages` inválido en Dataproc | — | Instalar `pymongo` dentro del script con `subprocess.check_call` |
-| 2 | SIGKILL por memoria — `gzip.decompress()` cargaba todo el archivo en RAM | `f23779ee` | Lectura chunked de 5,000 registros |
-| 3 | SIGKILL persiste — RAM insuficiente incluso con chunking | `83b54234` | Migrar a `n1-highmem-8` (52 GB RAM) |
-| 4 | Cuota de CPUs excedida (16 vCPUs requeridas vs 12 disponibles) | — | Crear clúster en modo **single-node** |
-| 5 | Nombre de archivo incorrecto — script buscaba `issues.bson.gz` pero el real es `apache-jira-issues.bson.gz` | — | Mapeo explícito colección → nombre de archivo GCS |
-
 ### Resultado
 
 - **6 colecciones Parquet** generadas (~13M filas en total)
