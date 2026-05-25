@@ -1,0 +1,8 @@
+{
+  "sourceFormat": "PARQUET",
+  "sourceUris": ["gs://shiftmetrics-silver/promise/*"],
+  "hivePartitioningOptions": {
+    "mode": "AUTO",
+    "sourceUriPrefix": "gs://shiftmetrics-silver/promise/"
+  }
+}
