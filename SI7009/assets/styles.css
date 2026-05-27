@@ -129,6 +129,10 @@ body {
   background-color: rgba(15, 23, 42, 0.9) !important;
   color: #cbd5e1 !important;
   font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
 }
 
 .tab:hover {
@@ -308,6 +312,22 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.story-panel,
+.advice-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.story-panel .chart {
+  width: 100%;
+}
+
+.story-panel .dash-table-container {
+  margin-top: 6px;
 }
 
 .predictor-source-card {

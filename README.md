@@ -40,7 +40,15 @@ Shiftmetrics-bronze-silver/
 
 Predice si un sprint producirá un **defecto escapado a producción** (`defecto_escapado = 1`), usando datos de Jira en BigQuery. El pipeline corre enteramente en **Vertex AI Workbench** sobre GCP; los experimentos se registran en MLflow (Cloud Run).
 
-La capa de visualizacion tecnica ahora tambien incluye un dashboard en Dash dentro de `SI7009/dashboard_app.py`, con tabs para overview, modelo, calibracion, drift, explainability y fuentes.
+La capa de visualización técnica ahora incluye un dashboard en Dash dentro de `SI7009/dashboard_app.py`, con una vista ejecutiva inicial y tabs para overview, modelo, calibración, drift, explainability, design lab, conceptos, predictor y fuentes.
+
+Para abrirlo localmente en el repo:
+
+```bash
+python SI7009/dashboard_app.py
+```
+
+El panel fue diseñado para cumplir con el enfoque del curso: contexto + datos + contraste, y para separar vistas técnicas, narrativas y de sandbox interactivo.
 
 ### Infraestructura
 
@@ -286,6 +294,48 @@ model = mlflow.sklearn.load_model("models:/ShiftMetrics-DefectoEscapado@producti
 
 # Por versión específica
 model_v4 = mlflow.sklearn.load_model("models:/ShiftMetrics-DefectoEscapado/4")
+```
+
+### Dashboard Dash local
+
+La visualización ejecutiva vive en [SI7009/dashboard_app.py](SI7009/dashboard_app.py). Esa app tiene dos modos:
+
+- Modo live: intenta leer métricas y parámetros desde MLflow y cargar el champion del registry.
+- Modo offline: si MLflow no responde o el modelo no se puede cargar, usa métricas documentadas y un predictor heurístico para que la UI siga funcionando.
+
+#### De dónde salen los datos cuando el modelo está offline
+
+Cuando el registry no está accesible, el dashboard toma los valores de fallback definidos en el propio código y en la documentación del proyecto:
+
+- Métricas ejecutivas: F2, recall, precision, Brier, flagging rate y estabilidad LOPO.
+- Resumen de pipeline: estados de Bronze, Silver, Gold, ML y Viz.
+- Comparaciones de modelos, calibración, drift y SHAP: tablas y figuras estáticas ya embebidas en la app.
+- Predictor: si no puede cargar el champion, calcula una probabilidad heurística basada en los drivers principales del modelo.
+
+#### Cómo “prender” el modelo
+
+El dashboard no prende un modelo local por sí mismo; lo carga desde MLflow. Para que entre en modo live:
+
+1. Verifica que el servidor MLflow esté disponible en `https://mlflow-server-919593201130.us-central1.run.app`.
+2. Confirma que el registry `ShiftMetrics-DefectoEscapado` tenga el alias `champion` o `production`, o la versión `4`.
+3. Asegúrate de tener acceso al proyecto de GCP y a los artefactos en `gs://shiftmetrics-bronze/mlruns/`.
+4. Ejecuta la app con `python SI7009/dashboard_app.py`.
+
+Si MLflow está visible pero el dashboard sigue en offline, normalmente significa que la app no pudo resolver uno de estos puntos: tracking URI, alias del registry, permisos, o artefactos del modelo.
+
+#### Comandos útiles
+
+```bash
+python SI7009/dashboard_app.py
+```
+
+```python
+import mlflow
+from mlflow.tracking import MlflowClient
+
+mlflow.set_tracking_uri("https://mlflow-server-919593201130.us-central1.run.app")
+client = MlflowClient()
+print(client.get_model_version_by_alias("ShiftMetrics-DefectoEscapado", "champion"))
 ```
 
 ---
