@@ -2,11 +2,6 @@
 
 Pipeline de datos y machine learning para predicción de defectos escapados en sprints de software, usando datos de Apache JIRA, PROMISE, GHArchive y BigQuery sobre GCP.
 
-**Proyecto:** Predicción de Defect Escape en Sprints de Software
-**Curso:** SI7006 · Proyecto Integrador · Master Data Science & Analytics · EAFIT
-**Equipo:** saldsfishy@gmail.com · samargo1703@gmail.com · freddycadavid2015@gmail.com · juanprc2017@gmail.com · juanmejia0317@gmail.com
-**Versión:** 1.0 · Mayo 2026
-
 ---
 
 ## Estructura del proyecto
@@ -23,25 +18,7 @@ Shiftmetrics-bronze-silver/
 
 ---
 
-## 1. Descripción General
-
-ShiftMetrics Analytics es un sistema de Machine Learning para predecir el defect escape en sprints de desarrollo de software. El defect escape es la proporción de defectos que no se detectan durante el sprint y llegan a producción.
-
-El proyecto usa datos históricos de repositorios de código, Jira (Apache y Red Hat), logs de eventos de GitHub y métricas de calidad de proyectos open source para entrenar modelos que permitan identificar riesgos antes del cierre del sprint.
-
-**Estado al cierre (Mayo 2026):**
-- Infraestructura GCP configurada (proyecto, IAM, buckets, BigQuery, APIs)
-- Datasets crudos cargados en la capa Bronze (4.36 GiB total)
-- Conversión BSON → Parquet del dataset Apache Jira (6 colecciones, ~13M filas)
-- EDA ejecutado sobre los 4 datasets
-- 4 jobs Silver ejecutados en Dataproc
-- Job Gold ejecutado: tabla `sprint_features` con 42,747 filas en BigQuery
-- ML Pipeline ejecutado con XGBoost + LightGBM + calibración + SHAP
-- Dashboard Dash y servidor MLflow desplegados en Cloud Run
-
----
-
-## 2. Arquitectura del Pipeline (Medallion)
+## Arquitectura del Pipeline (Medallion)
 
 ```
 ┌─────────────┐   ┌─────────────┐   ┌──────────────┐   ┌─────────────┐
@@ -50,77 +27,56 @@ El proyecto usa datos históricos de repositorios de código, Jira (Apache y Red
 └──────┬──────┘   └──────┬──────┘   └──────┬───────┘   └──────┬──────┘
        │                 │                  │                   │
        └─────────────────┴──────────────────┴───────────────────┘
-                                   │
-                                   ▼
-                   ┌───────────────────────────────┐
-                   │    shiftmetrics-bronze (GCS)   │
-                   │         4.36 GiB · 176+ obj    │
-                   └───────────────┬───────────────┘
-                                   │
-                        ┌──────────┴──────────┐
-                        │  Dataproc PySpark    │
-                        │  (BSON→Parquet +     │
-                        │   4 Silver Jobs)     │
-                        └──────────┬──────────┘
-                                   │
-                   ┌───────────────────────────────┐
-                   │    shiftmetrics-silver (GCS)   │
-                   │      4 tablas Parquet          │
-                   └───────────────┬───────────────┘
-                                   │
-                        ┌──────────┴──────────┐
-                        │  Dataproc Gold Job   │
-                        │  PySpark + BQ        │
-                        └──────────┬──────────┘
-                                   │
-                   ┌───────────────────────────────┐
-                   │   BigQuery: shiftmetrics_gold  │
-                   │   sprint_features: 42,747 f.   │
-                   └───────────────┬───────────────┘
-                                   │
-                        ┌──────────┴──────────┐
-                        │   ML Pipeline        │
-                        │   Vertex AI          │
-                        └──────────┬──────────┘
-                                   │
-                        ┌──────────┴──────────┐
-                        │   Deploy API REST    │
-                        │   Cloud Run          │
-                        └─────────────────────┘
+                                    │
+                                    ▼
+                    ┌───────────────────────────────┐
+                    │    shiftmetrics-bronze (GCS)   │
+                    │         4.36 GiB · 176+ obj    │
+                    └───────────────┬───────────────┘
+                                    │
+                         ┌──────────┴──────────┐
+                         │  Dataproc PySpark    │
+                         │  (BSON→Parquet +     │
+                         │   4 Silver Jobs)     │
+                         └──────────┬──────────┘
+                                    │
+                    ┌───────────────────────────────┐
+                    │    shiftmetrics-silver (GCS)   │
+                    │      4 tablas Parquet          │
+                    └───────────────┬───────────────┘
+                                    │
+                         ┌──────────┴──────────┐
+                         │  Dataproc Gold Job   │
+                         │  PySpark + BQ        │
+                         └──────────┬──────────┘
+                                    │
+                    ┌───────────────────────────────┐
+                    │   BigQuery: shiftmetrics_gold  │
+                    │   sprint_features: 42,747 f.   │
+                    └───────────────┬───────────────┘
+                                    │
+                         ┌──────────┴──────────┐
+                         │   ML Pipeline        │
+                         │   Vertex AI          │
+                         └──────────┬──────────┘
+                                    │
+                         ┌──────────┴──────────┐
+                         │   Deploy API REST    │
+                         │   Cloud Run          │
+                         └─────────────────────┘
 ```
 
-| Capa   | Bucket GCS               | Descripción                               |
-|--------|--------------------------|-------------------------------------------|
-| Bronze | `shiftmetrics-bronze`    | Datos crudos sin transformar              |
-| Silver | `shiftmetrics-silver`    | Datos limpios, estandarizados, Parquet    |
-| Gold   | `shiftmetrics_gold` (BQ) | Features y tablas analíticas para ML      |
+| Capa   | Bucket / Destino         | Descripción                              |
+|--------|--------------------------|------------------------------------------|
+| Bronze | `shiftmetrics-bronze`    | Datos crudos sin transformar             |
+| Silver | `shiftmetrics-silver`    | Datos limpios, estandarizados, Parquet   |
+| Gold   | `shiftmetrics_gold` (BQ) | Features y tablas analíticas para ML    |
 
 ---
 
-## 3. Infraestructura GCP
+## Bronze / Silver — Jobs PySpark
 
-| Parámetro        | Valor                                         |
-|------------------|-----------------------------------------------|
-| Project Name     | shiftmetrics-analytics                        |
-| Project Number   | 919593201130                                  |
-| Region           | us-central1                                   |
-| Cuota CPUs       | 12 vCPUs máximos (cuenta de prueba)           |
-
-**Buckets (privados, us-central1):**
-
-| Bucket                  | Estado                                   |
-|-------------------------|------------------------------------------|
-| `shiftmetrics-bronze`   | Activo — 4.36 GiB, 176+ objetos         |
-| `shiftmetrics-silver`   | Activo — 4 tablas Parquet particionadas  |
-| `shiftmetrics-gold`     | Creado (datos en BigQuery)               |
-
-**APIs habilitadas:** Cloud Storage, BigQuery, Dataproc, Cloud Run, Vertex AI.
-
----
-
-## 4. Bronze / Silver — Jobs PySpark
-
-### 4.1 Datasets crudos
+### Datasets Bronze
 
 | Dataset        | Ruta GCS                  | Archivos   | Tamaño   | Formato  |
 |----------------|---------------------------|------------|----------|----------|
@@ -129,7 +85,7 @@ El proyecto usa datos históricos de repositorios de código, Jira (Apache y Red
 | Red Hat Jira   | `bronze/redhat-jira/`     | 2 ZIP      | 266 MB   | ZIP/CSV  |
 | GHArchive 2022 | `bronze/gharchive/`       | 24 JSON.gz | 1.7 GiB  | JSON.gz  |
 
-**Estructura en GCS:**
+**Estructura completa en GCS:**
 
 ```
 gs://shiftmetrics-bronze/
@@ -147,9 +103,11 @@ gs://shiftmetrics-bronze/
 │   ├── projects/
 │   ├── users/
 │   └── worklogs/   [~120K filas]
-├── gharchive/          [24 archivos .json.gz, 2022]
+├── gharchive/
+│   └── [24 archivos .json.gz, 2022]
 ├── promise/
-│   └── PROMISE-backup/bug-data/  [144 CSV]
+│   └── PROMISE-backup/bug-data/
+│       └── [144 archivos CSV]
 ├── redhat-jira/
 │   ├── redhat-inputs.zip   (usar este)
 │   └── redhat-outputs.zip  (NO usar — no son datos Jira)
@@ -162,34 +120,62 @@ gs://shiftmetrics-bronze/
     └── gold_job_sprint_features.py
 ```
 
-> `redhat-outputs.zip` contiene columnas `Time, beta, alpha, epsilon, gamma` — son datos de modelo matemático, no issues de Jira. No usar.
+---
 
-### 4.2 Conversión BSON a Parquet (Apache Jira)
+### Paso previo: Conversión BSON a Parquet (Apache Jira)
 
-Apache Jira llegó como dump MongoDB. Spark no puede leer BSON directamente; se convirtió a Parquet con un job Dataproc previo.
+Apache Jira llegó como dump de MongoDB (`.bson.gz`). Spark y BigQuery no pueden leerlo directamente.
 
-| Componente | Valor                                          |
-|------------|------------------------------------------------|
-| Cluster    | `jira-converter` — single-node                 |
-| Master     | n1-highmem-8 (8 vCPUs, 52 GB RAM)             |
-| Script     | `gs://shiftmetrics-bronze/scripts/bson_fix.py` |
+| Componente | Valor                                           |
+|------------|-------------------------------------------------|
+| Cluster    | `jira-converter` — single-node                  |
+| Máquina    | n1-highmem-8 (8 vCPUs, 52 GB RAM)              |
+| Script     | `gs://shiftmetrics-bronze/scripts/bson_fix.py`  |
 
-Single-node porque la cuota máxima es 12 vCPUs y un cluster multi-nodo estándar requería 16.
+**Lógica del script:**
+1. Instala `pymongo` vía `subprocess.check_call()` al inicio del job.
+2. Descarga el `.bson.gz` desde GCS.
+3. Parsea BSON en streaming — lotes de 3,000 documentos.
+4. Aplana documentos anidados hasta profundidad 2; arrays a string.
+5. Escribe Parquet en chunks: primer chunk en `overwrite`, resto en `append`.
+6. Sanitiza nombres de columnas (`.`, `-`, espacios → guiones bajos).
+
+```python
+def stream_bson_gz(gcs_path, chunk_size=3000):
+    raw_bytes = blob.download_as_bytes()
+    decompressed = gzip.decompress(raw_bytes)
+    buf = io.BytesIO(decompressed)
+    batch = []
+    while True:
+        size_bytes = buf.read(4)
+        if len(size_bytes) < 4: break
+        doc_size = struct.unpack("<i", size_bytes)[0]
+        if doc_size < 5: break
+        rest = buf.read(doc_size - 4)
+        doc = bson.decode(size_bytes + rest)
+        batch.append(flatten_doc(doc))
+        if len(batch) >= chunk_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+```
 
 **Resultado:**
 
-| Colección | BSON.gz | Filas Parquet |
-|-----------|---------|---------------|
-| projects  | 1.2 MB  | pequeño       |
-| users     | 7.8 MB  | pequeño       |
-| worklogs  | 120 MB  | ~120K         |
-| events    | 339 MB  | ~7.5M         |
-| issues    | 729 MB  | ~978K         |
-| comments  | 765 MB  | ~4.6M         |
+| Colección | BSON.gz  | Filas Parquet |
+|-----------|----------|---------------|
+| projects  | 1.2 MB   | pequeño       |
+| users     | 7.8 MB   | pequeño       |
+| worklogs  | 120 MB   | ~120K         |
+| events    | 339 MB   | ~7.5M         |
+| issues    | 729 MB   | ~978K         |
+| comments  | 765 MB   | ~4.6M         |
 | **TOTAL** | **1.9 GiB** | **~13M filas** |
 
+**Comandos:**
+
 ```bash
-# Crear cluster
 gcloud dataproc clusters create jira-converter \
   --region=us-central1 --zone=us-central1-a \
   --master-machine-type=n1-highmem-8 \
@@ -197,14 +183,15 @@ gcloud dataproc clusters create jira-converter \
   --single-node --image-version=2.1-debian11 \
   --project=shiftmetrics-analytics
 
-# Ejecutar job
 gcloud dataproc jobs submit pyspark \
   gs://shiftmetrics-bronze/scripts/bson_fix.py \
   --cluster=jira-converter --region=us-central1 \
   --project=shiftmetrics-analytics
 ```
 
-### 4.3 Silver Job 01 — PROMISE
+---
+
+### Silver Job 01 — PROMISE
 
 ```
 Input:  gs://shiftmetrics-bronze/promise/PROMISE-backup/bug-data/*/*.csv
@@ -212,13 +199,25 @@ Output: gs://shiftmetrics-silver/promise/
 Script: silver_job_01_promise.py
 ```
 
-Schema: `project, version, wmc, dit, noc, cbo, rfc, lcom, ca, ce, npm, lcom3, loc, dam, moa, mfa, cam, ic, cbm, amc, bug_count, defect_flag (0/1), defect_density, total_modules` — partición: `project`
+**Schema:**
+```
+project, version, wmc, dit, noc, cbo, rfc, lcom, ca, ce, npm, lcom3, loc,
+dam, moa, mfa, cam, ic, cbm, amc,
+bug_count (float), defect_flag (0/1), defect_density (float), total_modules
+Partición: project
+```
 
-Transformaciones: nombres a lowercase, CK a float64, binarizar `bug > 0` → `defect_flag`, extraer `project` y `version` del nombre del archivo.
+**Transformaciones:**
+- Estandarizar columnas a lowercase.
+- Castear métricas CK a float64.
+- Binarizar `bug`: `(bug > 0).cast(IntegerType)` → `defect_flag`.
+- Extraer `project` y `version` del nombre del archivo CSV.
 
-Cobertura: 11 proyectos (ant, camel, ivy, jedit, log4j, lucene, poi, synapse, velocity, xalan, xerces).
+**Cobertura:** 11 proyectos — ant, camel, ivy, jedit, log4j, lucene, poi, synapse, velocity, xalan, xerces.
 
-### 4.4 Silver Job 02 — Apache Jira
+---
+
+### Silver Job 02 — Apache Jira
 
 ```
 Input:  gs://shiftmetrics-bronze/apache-jira-parquet/issues/
@@ -226,11 +225,23 @@ Output: gs://shiftmetrics-silver/apache-jira/
 Script: silver_job_02_apache_jira.py
 ```
 
-Schema: `key, project, issuetype_name, issue_category (bug/story/task/other), status, resolution, created_ts, resolution_ts, cycle_time_days, sprint (YYYY-M), bug_story_ratio` — partición: `project`
+**Schema:**
+```
+key, project, issuetype_name, issue_category (bug/story/task/other),
+status, resolution, created_ts, resolution_ts, cycle_time_days,
+sprint (YYYY-M), bug_story_ratio (float)
+Partición: project
+```
 
-La columna de tipo es `issuetype_name` (no `issuetype`) porque el BSON fue aplanado por `bson_fix.py`. El proyecto se extrae de `key.split("-")[0]`.
+**Transformaciones:**
+- Usar columna `issuetype_name` (struct aplanado por `bson_fix.py` — no `issuetype`).
+- Calcular `cycle_time_days = resolutiondate - created`.
+- Extraer `project` de `key.split("-")[0]` (ej: `HADOOP-1234 → HADOOP`).
+- Calcular `bug_story_ratio` por `(project, sprint)`.
 
-### 4.5 Silver Job 03 — Red Hat Jira
+---
+
+### Silver Job 03 — Red Hat Jira
 
 ```
 Input:  gs://shiftmetrics-bronze/redhat-jira-parquet/  (251 Parquets pre-generados)
@@ -238,11 +249,26 @@ Output: gs://shiftmetrics-silver/redhat-jira/
 Script: silver_job_03_redhat_jira.py
 ```
 
-Schema: `issue_key, issue_type, issue_category, status, project_key, project_name, resolution, created_ts, resolved_ts, cycle_time_days, sprint (YYYY-M), num_bugs, num_stories, num_tasks, total_issues_sprint, bug_story_ratio` — partición: `project_key`
+Los 251 parquets fueron generados localmente desde `redhat-inputs.zip` y subidos a GCS antes de ejecutar el job. `redhat-outputs.zip` no contiene datos Jira (columnas: `Time, beta, alpha, epsilon, gamma, m`) — no se usa.
 
-Los 251 parquets se generaron localmente desde `redhat-inputs.zip` y se subieron a `gs://shiftmetrics-bronze/redhat-jira-parquet/`. Las fechas están en formato `DD/MM/YYYY HH:MM` — `dayfirst=True` es obligatorio.
+**Schema:**
+```
+issue_key, issue_type, issue_category (bug/story/task/other), status,
+project_key, project_name, resolution, created_ts, resolved_ts,
+cycle_time_days, sprint (YYYY-M),
+num_bugs, num_stories, num_tasks, total_issues_sprint, bug_story_ratio (float)
+Partición: project_key
+```
 
-### 4.6 Silver Job 04 — GHArchive
+**Transformaciones:**
+- Parsear fechas con `dayfirst=True` — formato `DD/MM/YYYY HH:MM` — obligatorio.
+- Calcular `cycle_time_days = Resolved - Created`.
+
+**Cobertura:** 505,096 issues · 251 project keys.
+
+---
+
+### Silver Job 04 — GHArchive
 
 ```
 Input:  gs://shiftmetrics-bronze/gharchive/*.json.gz (24 archivos)
@@ -250,85 +276,83 @@ Output: gs://shiftmetrics-silver/gharchive/
 Script: silver_job_04_gharchive.py
 ```
 
-Schema: `repo_name, apache_project_key, year, month, push_count, deploy_frequency_weekly, total_prs_closed, prs_merged, prs_not_merged, change_failure_rate` — partición: `year, month`
+**Schema:**
+```
+repo_name, apache_project_key (ej: "SPARK", "HADOOP"),
+year, month,
+push_count, deploy_frequency_weekly (push_count / 4.33),
+total_prs_closed, prs_merged, prs_not_merged,
+change_failure_rate (prs_not_merged / total_prs_closed)
+Partición: year, month
+```
 
-El filtro `repo_name.startswith('apache/')` es obligatorio. Sin él, el CFR calculado es 77.3% (todos los repos del mundo); con el filtro es 26.1% (solo proyectos Apache).
+**Transformaciones:**
+- Filtrar `repo_name.startswith('apache/')` — obligatorio. Sin este filtro el CFR es 77.3% (incorrecto); con filtro: 26.1%.
+- `apache_project_key = upper(split(repo_name, "/")[1])` — clave de join con Jira.
 
----
-
-## 5. EDAS — Análisis Exploratorio
-
-| Notebook           | Dataset                | Resultado principal                        |
-|--------------------|------------------------|--------------------------------------------|
-| EDA_01_PROMISE     | PROMISE (144 CSV)      | Schema incorrecto detectado; ruta corregida a `bug-data/` |
-| EDA_02_APACHE_JIRA | Apache Jira (Parquet)  | Clasificador corregido; 94 columnas en `issues` |
-| EDA_03_REDHAT_JIRA | Red Hat Jira (ZIP/CSV) | 505,096 issues, 251 proyectos, `dayfirst=True` |
-| EDA_04_GHARCHIVE   | GHArchive 2022         | CFR real: 26.1%; 4,994 eventos Apache      |
-
-**EDA_03 — Red Hat Jira (resultados):**
-
-| Métrica                    | Valor                                 |
-|----------------------------|---------------------------------------|
-| Total issues               | 505,096                               |
-| Proyectos únicos           | 251                                   |
-| Issues con resolución      | 436,475 / 505,096 (86.4%)            |
-| Cycle Time p50             | 28 días                               |
-| Cycle Time p75             | 127 días                              |
-| Bug ratio                  | 1.21 (223K bugs / 184K tasks+stories) |
-
-**EDA_04 — GHArchive (resultados):**
-
-| Métrica                    | Valor                                  |
-|----------------------------|----------------------------------------|
-| Archivos procesados        | 24 de 24 (1.69 GiB)                   |
-| Eventos Apache             | 4,994                                  |
-| Change Failure Rate real   | 26.1%                                  |
-| Rango temporal             | 2022-01-01 → 2022-03-15               |
+**Cobertura:** 4,994 eventos Apache 2022 · 12 meses.
 
 ---
 
-## 6. Gold — Feature Store en BigQuery
+## EDAS — Análisis Exploratorio
 
-**Tabla:** `shiftmetrics-analytics:shiftmetrics_gold.sprint_features`
+| Notebook           | Dataset                | Estado    | Resultado principal                       |
+|--------------------|------------------------|-----------|-------------------------------------------|
+| EDA_01_PROMISE     | PROMISE (144 CSV)      | Corregido | Schema incorrecto detectado y resuelto    |
+| EDA_02_APACHE_JIRA | Apache Jira (Parquet)  | Corregido | Bug clasificador resuelto, 94 cols issues |
+| EDA_03_REDHAT_JIRA | Red Hat Jira (ZIP/CSV) | Funcional | 505,096 issues, 251 proyectos validados   |
+| EDA_04_GHARCHIVE   | GHArchive 2022         | Funcional | CFR real: 26.1%; 4,994 eventos Apache     |
 
-### JOIN entre capas Silver
+**EDA_01 — PROMISE:** Los archivos en `AST_encoding/` tienen columnas nombradas como valores flotantes en lugar del schema CK clásico. La subcarpeta correcta es `bug-data/`. Columnas: `wmc, dit, noc, cbo, rfc, lcom, ca, ce, npm, lcom3, loc, dam, moa, mfa, cam, ic, cbm, amc`. Target: `bug` binarizado con `(bug > 0) = 1`.
+
+**EDA_02 — Apache Jira:** El clasificador de colecciones fallaba — todas quedaban como `other`. Corregido con regla directa `if coll_name == 'issues'`. Columnas a eliminar (>50% nulos): `regression`, `patchinfo`, `environment`, `duedate`, `timeestimate`.
+
+**EDA_03 — Red Hat Jira:** Fechas en `DD/MM/YYYY HH:MM` se interpretaban mal sin `dayfirst=True`. Resultados: 505,096 issues, 86.4% con resolución, cycle time p50 = 28 días, p75 = 127 días, bug ratio = 1.21.
+
+**EDA_04 — GHArchive:** CFR inicial de 77.3% calculado sin filtro sobre todos los repositorios del mundo. Con filtro `repo_name.startswith('apache/')` sobre los 24 archivos completos: CFR = 26.1%, 4,994 eventos Apache.
+
+---
+
+## Gold — Feature Store en BigQuery
+
+### Estrategia de JOIN
 
 ```
-Silver Apache Jira  (project, sprint)          <- BASE
+Silver Apache Jira  (project, sprint)          ← BASE
     LEFT JOIN Silver PROMISE    ON project
     LEFT JOIN Silver GHArchive  ON apache_project_key=project AND year/month=sprint
     LEFT JOIN Silver Red Hat    ON project_key=project AND sprint=sprint
-->  BigQuery: shiftmetrics_gold.sprint_features
+→   BigQuery: shiftmetrics_gold.sprint_features
 ```
 
-| Fuente Silver  | Filas aportadas |
-|----------------|-----------------|
-| Apache Jira    | 42,747 (base)   |
-| Red Hat Jira   | 17,475          |
-| GHArchive      | 205             |
-| PROMISE CK     | 11 proyectos    |
+| Fuente Silver  | Clave de unión                                       | Filas aportadas |
+|----------------|------------------------------------------------------|-----------------|
+| Apache Jira    | (project, sprint)                                    | 42,747          |
+| Red Hat Jira   | project_key = project AND sprint = sprint            | 17,475          |
+| GHArchive      | apache_project_key = project AND year/month = sprint | 205             |
+| PROMISE CK     | project = project (por proyecto, no por sprint)      | 11 proyectos    |
 
 ### Schema: sprint_features
 
-| Columna                   | Tipo    | Fuente     | Nullable | Descripción                                      |
-|---------------------------|---------|------------|----------|--------------------------------------------------|
-| `sprint_id`               | STRING  | Generado   | No       | `"{project}_{sprint}"` ej: `"SPARK_2022-3"`     |
-| `project`                 | STRING  | Apache Jira| No       | Clave del proyecto                               |
-| `sprint`                  | STRING  | Apache Jira| No       | `"YYYY-M"`                                       |
-| `avg_wmc`                 | FLOAT64 | PROMISE    | Si       | Weighted Methods per Class                       |
-| `avg_dit`                 | FLOAT64 | PROMISE    | Si       | Depth of Inheritance Tree                        |
-| `avg_cbo`                 | FLOAT64 | PROMISE    | Si       | Coupling Between Objects                         |
-| `avg_rfc`                 | FLOAT64 | PROMISE    | Si       | Response for a Class                             |
-| `avg_lcom`                | FLOAT64 | PROMISE    | Si       | Lack of Cohesion of Methods                      |
-| `avg_loc`                 | FLOAT64 | PROMISE    | Si       | Lines of Code                                    |
-| `defect_density`          | FLOAT64 | PROMISE    | Si       | Modulos defectuosos / total modulos              |
-| `bug_story_ratio`         | FLOAT64 | Jira       | No       | Bugs / (Stories + Tasks) por sprint              |
-| `avg_cycle_time_days`     | FLOAT64 | Jira       | No       | Tiempo promedio de resolucion (dias)             |
-| `num_bugs_sprint`         | INT64   | Jira       | No       | Bugs en el sprint                                |
-| `num_stories_sprint`      | INT64   | Jira       | No       | Stories en el sprint                             |
-| `deploy_frequency_weekly` | FLOAT64 | GHArchive  | Si       | Pushes a main/master por semana                  |
-| `change_failure_rate`     | FLOAT64 | GHArchive  | Si       | PRs sin merge / total PRs cerrados               |
-| `defecto_escapado`        | INT64   | Derivado   | No       | TARGET ML: 0 o 1 (avg_cycle_time_days > 30 dias)|
+| Columna                   | Tipo    | Fuente     | Nullable | Descripción                                          |
+|---------------------------|---------|------------|----------|------------------------------------------------------|
+| `sprint_id`               | STRING  | Generado   | No       | `"{project}_{sprint}"` ej: `"SPARK_2022-3"`         |
+| `project`                 | STRING  | Apache Jira| No       | Clave del proyecto                                   |
+| `sprint`                  | STRING  | Apache Jira| No       | `"YYYY-M"`                                           |
+| `avg_wmc`                 | FLOAT64 | PROMISE    | Si       | Weighted Methods per Class (promedio)                |
+| `avg_dit`                 | FLOAT64 | PROMISE    | Si       | Depth of Inheritance Tree (promedio)                 |
+| `avg_cbo`                 | FLOAT64 | PROMISE    | Si       | Coupling Between Objects (promedio)                  |
+| `avg_rfc`                 | FLOAT64 | PROMISE    | Si       | Response for a Class (promedio)                      |
+| `avg_lcom`                | FLOAT64 | PROMISE    | Si       | Lack of Cohesion of Methods (promedio)               |
+| `avg_loc`                 | FLOAT64 | PROMISE    | Si       | Lines of Code (promedio)                             |
+| `defect_density`          | FLOAT64 | PROMISE    | Si       | Modulos defectuosos / total modulos                  |
+| `bug_story_ratio`         | FLOAT64 | Jira       | No       | Bugs / (Stories + Tasks) por sprint                  |
+| `avg_cycle_time_days`     | FLOAT64 | Jira       | No       | Tiempo promedio de resolucion (dias)                 |
+| `num_bugs_sprint`         | INT64   | Jira       | No       | Numero de bugs en el sprint                          |
+| `num_stories_sprint`      | INT64   | Jira       | No       | Numero de stories en el sprint                       |
+| `deploy_frequency_weekly` | FLOAT64 | GHArchive  | Si       | Pushes a main/master por semana                      |
+| `change_failure_rate`     | FLOAT64 | GHArchive  | Si       | PRs sin merge / total PRs cerrados                   |
+| `defecto_escapado`        | INT64   | Derivado   | No       | TARGET ML: 0 o 1 (avg_cycle_time_days > 30 dias)    |
 
 ### Verificacion
 
@@ -343,22 +367,10 @@ FROM shiftmetrics_gold.sprint_features;
 ```
 
 | total_filas | proyectos | sprints | defectos_positivos | prevalencia_pct |
-|-------------|-----------|---------|--------------------|-----------------| 
-| 42,747      | 619       | 250     | 30,116             | 70.5%           |
+|-------------|-----------|---------|---------------------|-----------------|
+| 42,747      | 619       | 250     | 30,116              | 70.5%           |
 
-### Notas para ML
-
-**Prevalencia 70.5%:** El target tiene desbalance moderado. Opciones: `scale_pos_weight = 0.42` en XGBoost, undersampling, o ajustar el threshold de cycle_time_days de 30 a 60 dias. El F2-Score ya penaliza los falsos negativos.
-
-**NULLs en metricas CK:** Las columnas `avg_wmc`, `avg_cbo`, `avg_rfc`, `avg_lcom`, `avg_loc` son NULL para 608 de los 619 proyectos. Solo los 11 proyectos PROMISE tienen datos CK. Se recomienda agregar columna binaria `has_ck_data` e imputar por mediana.
-
-**Split temporal:** Usar corte por `sprint` para evitar data leakage.
-
-```python
-train = df[df['sprint'] < '2022-8']
-val   = df[(df['sprint'] >= '2022-8') & (df['sprint'] < '2022-11')]
-test  = df[df['sprint'] >= '2022-11']
-```
+**Nota sobre NULLs en CK:** Las columnas `avg_wmc`, `avg_cbo`, `avg_rfc`, `avg_lcom`, `avg_loc` y `defect_density` son NULL para 608 de los 619 proyectos. Solo los 11 proyectos de PROMISE tienen metricas CK. Para ML se recomienda agregar `has_ck_data` (1/0) e imputar por mediana.
 
 ---
 
