@@ -40,7 +40,7 @@ Shiftmetrics-bronze-silver/
 
 Predice si un sprint producirá un **defecto escapado a producción** (`defecto_escapado = 1`), usando datos de Jira en BigQuery. El pipeline corre enteramente en **Vertex AI Workbench** sobre GCP; los experimentos se registran en MLflow (Cloud Run).
 
-La capa de visualización técnica ahora incluye un dashboard en Dash dentro de `SI7009/dashboard_app.py`, con una vista ejecutiva inicial y tabs para overview, modelo, calibración, drift, explainability, design lab, conceptos, predictor y fuentes.
+La capa de visualización técnica ahora incluye un dashboard en Dash dentro de `SI7009/dashboard_app.py`, con una vista ejecutiva inicial y pestañas para overview, modelo, calibración, drift, explainability, predictor y fuentes.
 
 Para abrirlo localmente en el repo:
 
