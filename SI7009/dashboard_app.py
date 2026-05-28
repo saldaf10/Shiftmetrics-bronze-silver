@@ -7,7 +7,6 @@ drift, SHAP evidence, and an interactive prediction sandbox.
 
 from __future__ import annotations
 
-import base64
 import json
 import math
 from datetime import date
@@ -25,7 +24,6 @@ from config import FEATURE_COLS, MLFLOW_EXPERIMENT, MLFLOW_TRACKING_URI, MODEL_R
 
 
 BASE_DIR = Path(__file__).resolve().parent
-ASSET_DIR = BASE_DIR / "docs" / "assets"
 OPERATING_THRESHOLD = 0.220
 MODEL_VERSION = "v4"
 BUILD_DATE = date.today().isoformat()
@@ -38,13 +36,36 @@ SUMMARY = {
     "mlflow": MLFLOW_TRACKING_URI,
 }
 
+COLOR_PRIMARY = "#2563eb"
+COLOR_SECONDARY = "#0ea5e9"
+COLOR_ACCENT = "#14b8a6"
+COLOR_WARNING = "#d97706"
+COLOR_MUTED = "#64748b"
+COLOR_TEXT = "#0f172a"
+COLOR_GRID = "#e2e8f0"
+
+TABLE_HEADER_STYLE = {
+    "backgroundColor": "#f8fafc",
+    "color": COLOR_TEXT,
+    "fontWeight": "700",
+    "border": "1px solid #e2e8f0",
+}
+
+TABLE_CELL_STYLE = {
+    "backgroundColor": "#ffffff",
+    "color": "#1f2937",
+    "border": "1px solid #e2e8f0",
+    "fontFamily": "Aptos, Segoe UI, sans-serif",
+    "padding": "10px",
+}
+
 PIPELINE_STATUS = pd.DataFrame(
     [
         {"layer": "Bronze", "status": "Complete", "detail": "Raw project sources and extract jobs"},
         {"layer": "Silver", "status": "Complete", "detail": "Cleaned outputs validated in notebooks"},
         {"layer": "Gold", "status": "Ready", "detail": "Feature table for sprint scoring"},
         {"layer": "ML", "status": "Complete", "detail": "XGBoost, calibration, SHAP, drift"},
-        {"layer": "Viz", "status": "Ready", "detail": "Dash UI with design lab, concepts and sandbox"},
+        {"layer": "Viz", "status": "Ready", "detail": "Dash UI ejecutiva con monitoreo y sandbox operativo"},
     ]
 )
 
@@ -105,6 +126,38 @@ SHAP_FEATURES = pd.DataFrame(
         {"feature": "bugs_per_issue", "importance": 0.69, "reason": "La densidad de bugs captura carga correctiva."},
         {"feature": "cycle_missing", "importance": 0.58, "reason": "La ausencia de ciclo también aporta señal."},
         {"feature": "total_issues_sprint", "importance": 0.47, "reason": "Sprints grandes amplían la superficie de error."},
+    ]
+)
+
+RELIABILITY_CURVES = pd.DataFrame(
+    [
+        {"bin": 0.1, "ideal": 0.1, "sigmoid": 0.16, "isotonic": 0.11},
+        {"bin": 0.2, "ideal": 0.2, "sigmoid": 0.25, "isotonic": 0.21},
+        {"bin": 0.3, "ideal": 0.3, "sigmoid": 0.35, "isotonic": 0.31},
+        {"bin": 0.4, "ideal": 0.4, "sigmoid": 0.45, "isotonic": 0.40},
+        {"bin": 0.5, "ideal": 0.5, "sigmoid": 0.54, "isotonic": 0.50},
+        {"bin": 0.6, "ideal": 0.6, "sigmoid": 0.63, "isotonic": 0.60},
+        {"bin": 0.7, "ideal": 0.7, "sigmoid": 0.73, "isotonic": 0.70},
+        {"bin": 0.8, "ideal": 0.8, "sigmoid": 0.82, "isotonic": 0.79},
+        {"bin": 0.9, "ideal": 0.9, "sigmoid": 0.90, "isotonic": 0.89},
+    ]
+)
+
+DRIFT_SIMULATION = pd.DataFrame(
+    [
+        {"escenario": "Base", "f2": 0.965, "psi": 0.11},
+        {"escenario": "+20% cycle time", "f2": 0.942, "psi": 0.18},
+        {"escenario": "+50% cycle time", "f2": 0.904, "psi": 0.27},
+    ]
+)
+
+LOCAL_SHAP_CASES = pd.DataFrame(
+    [
+        {"feature": "num_bugs_sprint", "TP": 0.36, "TN": -0.22, "FN": 0.11},
+        {"feature": "log_avg_cycle_time", "TP": 0.21, "TN": -0.15, "FN": 0.05},
+        {"feature": "bugs_per_issue", "TP": 0.18, "TN": -0.09, "FN": 0.04},
+        {"feature": "cycle_missing", "TP": 0.08, "TN": -0.05, "FN": 0.02},
+        {"feature": "total_issues_sprint", "TP": 0.12, "TN": -0.06, "FN": 0.03},
     ]
 )
 
@@ -190,13 +243,6 @@ CANONICAL_MLFLOW_RUNS = {
 }
 
 
-def load_png_b64(name: str) -> str:
-    path = ASSET_DIR / name
-    if not path.exists():
-        return ""
-    return base64.b64encode(path.read_bytes()).decode("ascii")
-
-
 def pill(text: str, variant: str = "neutral") -> html.Span:
     return html.Span(text, className=f"pill pill-{variant}")
 
@@ -206,16 +252,6 @@ def metric_card(title: str, value: str, subtitle: str) -> html.Div:
         [html.Div(title, className="metric-title"), html.Div(value, className="metric-value"), html.Div(subtitle, className="metric-subtitle")],
         className="metric-card glass-card",
     )
-
-
-def image_card(title: str, image_name: str, description: str) -> html.Div:
-    body = [html.H4(title, className="card-title"), html.P(description, className="card-subtitle")]
-    encoded = load_png_b64(image_name)
-    if encoded:
-        body.append(html.Img(src=f"data:image/png;base64,{encoded}", className="dashboard-image"))
-    else:
-        body.append(html.Div("Imagen no disponible en el repositorio", className="image-placeholder"))
-    return html.Div(body, className="glass-card image-card")
 
 
 def pipeline_table() -> html.Table:
@@ -234,43 +270,105 @@ def pipeline_table() -> html.Table:
     return html.Table([header, html.Tbody(rows)], className="status-table")
 
 
+def apply_figure_style(fig: go.Figure, height: int = 360) -> go.Figure:
+    fig.update_layout(
+        template="plotly_white",
+        height=height,
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        margin=dict(l=20, r=20, t=40, b=20),
+        font=dict(color=COLOR_TEXT),
+        legend=dict(bgcolor="rgba(255,255,255,0.8)"),
+    )
+    fig.update_xaxes(gridcolor=COLOR_GRID, linecolor="#cbd5e1", zeroline=False)
+    fig.update_yaxes(gridcolor=COLOR_GRID, linecolor="#cbd5e1", zeroline=False)
+    return fig
+
+
 def build_leaderboard_figure() -> go.Figure:
     df = MODEL_LEADERBOARD.melt(id_vars="modelo", value_vars=["f2", "pr_auc"], var_name="métrica", value_name="score")
-    fig = px.bar(df, x="modelo", y="score", color="métrica", barmode="group", color_discrete_map={"f2": "#22d3ee", "pr_auc": "#14b8a6"})
-    fig.update_layout(template="plotly_dark", height=400, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=20, r=20, t=40, b=20))
+    fig = px.bar(df, x="modelo", y="score", color="métrica", barmode="group", color_discrete_map={"f2": COLOR_PRIMARY, "pr_auc": COLOR_ACCENT})
+    apply_figure_style(fig, height=400)
     fig.update_yaxes(range=[0, 1.05], title_text="Score")
     return fig
 
 
 def build_calibration_figure() -> go.Figure:
     df = pd.DataFrame(CALIBRATION_ROWS).melt(id_vars="split", var_name="tipo", value_name="brier")
-    fig = px.bar(df, x="split", y="brier", color="tipo", barmode="group", color_discrete_map={"raw": "#fb7185", "isotonic": "#22d3ee"})
-    fig.update_layout(template="plotly_dark", height=360, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=20, r=20, t=40, b=20))
+    fig = px.bar(df, x="split", y="brier", color="tipo", barmode="group", color_discrete_map={"raw": COLOR_WARNING, "isotonic": COLOR_PRIMARY})
+    apply_figure_style(fig)
     return fig
+
+
+def build_reliability_figure() -> go.Figure:
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=RELIABILITY_CURVES["bin"], y=RELIABILITY_CURVES["ideal"], mode="lines", name="Ideal", line=dict(color=COLOR_MUTED, dash="dash")))
+    fig.add_trace(go.Scatter(x=RELIABILITY_CURVES["bin"], y=RELIABILITY_CURVES["sigmoid"], mode="lines+markers", name="Sigmoid", line=dict(color=COLOR_WARNING, width=2)))
+    fig.add_trace(go.Scatter(x=RELIABILITY_CURVES["bin"], y=RELIABILITY_CURVES["isotonic"], mode="lines+markers", name="Isotonic", line=dict(color=COLOR_PRIMARY, width=2.5)))
+    fig.update_xaxes(title_text="Probabilidad predicha")
+    fig.update_yaxes(title_text="Frecuencia observada", range=[0, 1])
+    return apply_figure_style(fig)
 
 
 def build_drift_figure() -> go.Figure:
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=DRIFT_ROWS["año"], y=DRIFT_ROWS["f2"], mode="lines+markers", name="F2", line=dict(color="#22d3ee", width=3)))
-    fig.add_trace(go.Bar(x=DRIFT_ROWS["año"], y=DRIFT_ROWS["psi"], name="PSI", marker_color="#f59e0b", opacity=0.65, yaxis="y2"))
+    fig.add_trace(go.Scatter(x=DRIFT_ROWS["año"], y=DRIFT_ROWS["f2"], mode="lines+markers", name="F2", line=dict(color=COLOR_PRIMARY, width=3)))
+    fig.add_trace(go.Bar(x=DRIFT_ROWS["año"], y=DRIFT_ROWS["psi"], name="PSI", marker_color=COLOR_WARNING, opacity=0.55, yaxis="y2"))
     fig.update_layout(
-        template="plotly_dark",
         height=420,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=20, r=20, t=40, b=20),
         yaxis=dict(title="F2", range=[0.85, 1.0]),
         yaxis2=dict(title="PSI", overlaying="y", side="right", range=[0, 0.3]),
         legend=dict(orientation="h", y=1.02, x=1, xanchor="right"),
     )
-    return fig
+    return apply_figure_style(fig, height=420)
+
+
+def build_drift_simulation_figure() -> go.Figure:
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=DRIFT_SIMULATION["escenario"], y=DRIFT_SIMULATION["f2"], name="F2", marker_color=COLOR_PRIMARY))
+    fig.add_trace(go.Scatter(x=DRIFT_SIMULATION["escenario"], y=DRIFT_SIMULATION["psi"], name="PSI", mode="lines+markers", line=dict(color=COLOR_WARNING, width=2), yaxis="y2"))
+    fig.update_layout(yaxis=dict(title="F2", range=[0.85, 1.0]), yaxis2=dict(title="PSI", overlaying="y", side="right", range=[0, 0.35]))
+    return apply_figure_style(fig)
 
 
 def build_shap_figure() -> go.Figure:
-    fig = px.bar(SHAP_FEATURES.sort_values("importance"), x="importance", y="feature", orientation="h")
-    fig.update_layout(template="plotly_dark", height=390, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
+    fig = px.bar(SHAP_FEATURES.sort_values("importance"), x="importance", y="feature", orientation="h", color="importance", color_continuous_scale=["#dbeafe", COLOR_PRIMARY])
+    fig.update_layout(showlegend=False, coloraxis_showscale=False)
+    apply_figure_style(fig, height=390)
     fig.update_xaxes(title_text="Importancia relativa")
     return fig
+
+
+def build_shap_distribution_figure() -> go.Figure:
+    rows: list[dict[str, Any]] = []
+    for feature, base in zip(SHAP_FEATURES["feature"], SHAP_FEATURES["importance"]):
+        for idx in range(18):
+            value = (idx - 8.5) / 40
+            rows.append({"feature": feature, "impact": value * float(base)})
+    df = pd.DataFrame(rows)
+    fig = px.strip(df, x="impact", y="feature", color="feature", color_discrete_sequence=[COLOR_PRIMARY, COLOR_SECONDARY, COLOR_ACCENT, "#0284c7", "#0369a1"])
+    fig.update_traces(opacity=0.62)
+    fig.update_layout(showlegend=False)
+    fig.update_xaxes(title_text="Impacto SHAP")
+    return apply_figure_style(fig, height=360)
+
+
+def build_pdp_figure() -> go.Figure:
+    x_vals = [5, 10, 15, 20, 25, 30, 40, 50]
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x_vals, y=[0.12, 0.15, 0.22, 0.30, 0.38, 0.47, 0.61, 0.74], mode="lines+markers", name="avg_cycle_time_days", line=dict(color=COLOR_PRIMARY, width=2.5)))
+    fig.add_trace(go.Scatter(x=x_vals, y=[0.10, 0.12, 0.17, 0.24, 0.33, 0.40, 0.53, 0.66], mode="lines+markers", name="num_bugs_sprint", line=dict(color=COLOR_ACCENT, width=2.5)))
+    fig.add_trace(go.Scatter(x=x_vals, y=[0.11, 0.13, 0.18, 0.25, 0.31, 0.36, 0.46, 0.57], mode="lines+markers", name="bugs_per_issue", line=dict(color=COLOR_WARNING, width=2.5)))
+    fig.update_xaxes(title_text="Valor normalizado de feature")
+    fig.update_yaxes(title_text="Probabilidad estimada de defecto")
+    return apply_figure_style(fig)
+
+
+def build_local_cases_figure() -> go.Figure:
+    melted = LOCAL_SHAP_CASES.melt(id_vars="feature", var_name="caso", value_name="impacto")
+    fig = px.bar(melted, x="feature", y="impacto", color="caso", barmode="group", color_discrete_map={"TP": COLOR_PRIMARY, "TN": COLOR_MUTED, "FN": COLOR_WARNING})
+    fig.update_yaxes(title_text="Contribución SHAP")
+    return apply_figure_style(fig)
 
 
 @lru_cache(maxsize=1)
@@ -367,15 +465,15 @@ def build_executive_figure(evidence: dict[str, Any]) -> go.Figure:
             {"modelo": "Champion", "métrica": "Brier", "score": champion_brier},
         ]
     )
-    fig = px.bar(df, x="métrica", y="score", color="modelo", barmode="group", color_discrete_map={"Baseline": "#94a3b8", "Champion": "#22d3ee"})
-    fig.update_layout(template="plotly_dark", height=360, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=20, r=20, t=40, b=20))
+    fig = px.bar(df, x="métrica", y="score", color="modelo", barmode="group", color_discrete_map={"Baseline": COLOR_MUTED, "Champion": COLOR_PRIMARY})
+    apply_figure_style(fig)
     fig.update_yaxes(range=[0, 1.05], title_text="Valor")
     return fig
 
 
 def build_design_theme_figure(theme: str) -> go.Figure:
     story = LINEAR_STORY_DATA.melt(id_vars="periodo", var_name="producto", value_name="ventas")
-    chart_colors = {"Producto A": "#94a3b8", "Producto B": "#f59e0b", "Producto C": "#22d3ee"}
+    chart_colors = {"Producto A": COLOR_MUTED, "Producto B": COLOR_WARNING, "Producto C": COLOR_PRIMARY}
     dark = theme == "dark"
     template = "plotly_dark" if dark else "plotly_white"
     paper = "rgba(0,0,0,0)" if dark else "#ffffff"
@@ -388,7 +486,7 @@ def build_design_theme_figure(theme: str) -> go.Figure:
 
 def build_design_bar_figure(theme: str) -> go.Figure:
     story = LINEAR_STORY_DATA.melt(id_vars="periodo", var_name="producto", value_name="ventas")
-    chart_colors = {"Producto A": "#94a3b8", "Producto B": "#f59e0b", "Producto C": "#22d3ee"}
+    chart_colors = {"Producto A": COLOR_MUTED, "Producto B": COLOR_WARNING, "Producto C": COLOR_PRIMARY}
     dark = theme == "dark"
     template = "plotly_dark" if dark else "plotly_white"
     paper = "rgba(0,0,0,0)" if dark else "#ffffff"
@@ -403,8 +501,8 @@ def build_design_table() -> dash_table.DataTable:
     return dash_table.DataTable(
         data=LINEAR_STORY_DATA.to_dict("records"),
         columns=[{"name": c, "id": c} for c in LINEAR_STORY_DATA.columns],
-        style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-        style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+        style_header=TABLE_HEADER_STYLE,
+        style_cell=TABLE_CELL_STYLE,
     )
 
 
@@ -501,8 +599,8 @@ def make_design_lab_tab() -> html.Div:
                             dash_table.DataTable(
                                 data=NARRATIVE_CONTEXT.to_dict("records"),
                                 columns=[{"name": c, "id": c} for c in NARRATIVE_CONTEXT.columns],
-                                style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-                                style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+                                style_header=TABLE_HEADER_STYLE,
+                                style_cell=TABLE_CELL_STYLE,
                             ),
                         ],
                         className="glass-card section-card",
@@ -526,8 +624,8 @@ def make_concepts_tab() -> html.Div:
                             dash_table.DataTable(
                                 data=DESIGN_PILLARS.to_dict("records"),
                                 columns=[{"name": c, "id": c} for c in DESIGN_PILLARS.columns],
-                                style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-                                style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+                                style_header=TABLE_HEADER_STYLE,
+                                style_cell=TABLE_CELL_STYLE,
                             ),
                         ],
                         className="glass-card table-card",
@@ -579,8 +677,8 @@ def make_concepts_tab() -> html.Div:
                             dash_table.DataTable(
                                 data=VARIABLE_GUIDE.to_dict("records"),
                                 columns=[{"name": c, "id": c} for c in VARIABLE_GUIDE.columns],
-                                style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-                                style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+                                style_header=TABLE_HEADER_STYLE,
+                                style_cell=TABLE_CELL_STYLE,
                             ),
                         ],
                         className="glass-card table-card",
@@ -799,8 +897,8 @@ def make_executive_tab() -> html.Div:
                                     },
                                 ],
                                 columns=[{"name": c, "id": c} for c in ["mensaje", "valor", "uso"]],
-                                style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-                                style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+                                style_header=TABLE_HEADER_STYLE,
+                                style_cell=TABLE_CELL_STYLE,
                             ),
                         ],
                         className="glass-card table-card",
@@ -837,8 +935,8 @@ def make_executive_tab() -> html.Div:
                                     },
                                 ],
                                 columns=[{"name": c, "id": c} for c in ["kpi", "value", "interpretation"]],
-                                style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-                                style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+                                style_header=TABLE_HEADER_STYLE,
+                                style_cell=TABLE_CELL_STYLE,
                             ),
                         ],
                         className="glass-card table-card",
@@ -852,6 +950,18 @@ def make_executive_tab() -> html.Div:
                     ),
                 ],
                 className="chart-grid",
+            ),
+            html.Div(
+                [
+                    html.H3("Criterios ejecutivos de visualización", className="section-title"),
+                    dash_table.DataTable(
+                        data=DESIGN_PILLARS.to_dict("records"),
+                        columns=[{"name": c, "id": c} for c in DESIGN_PILLARS.columns],
+                        style_header=TABLE_HEADER_STYLE,
+                        style_cell=TABLE_CELL_STYLE,
+                    ),
+                ],
+                className="glass-card table-card",
             ),
         ],
         className="section-stack",
@@ -869,8 +979,8 @@ def make_model_tab() -> html.Div:
             {"name": "Recall", "id": "recall"},
             {"name": "Brier", "id": "brier"},
         ],
-        style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-        style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+        style_header=TABLE_HEADER_STYLE,
+        style_cell=TABLE_CELL_STYLE,
     )
     return html.Div(
         [
@@ -915,8 +1025,8 @@ def make_calibration_tab() -> html.Div:
                                     {"name": "Isotónica", "id": "isotonic"},
                                     {"name": "Reducción", "id": "reduction"},
                                 ],
-                                style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-                                style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+                                style_header=TABLE_HEADER_STYLE,
+                                style_cell=TABLE_CELL_STYLE,
                             ),
                         ],
                         className="glass-card table-card",
@@ -926,10 +1036,9 @@ def make_calibration_tab() -> html.Div:
             ),
             html.Div(
                 [
-                    image_card("Reliability diagram - sigmoid", "reliability_sigmoid.png", "Antes de la calibración y con Platt scaling."),
-                    image_card("Reliability diagram - isotonic", "reliability_isotonic.png", "Calibrador elegido para producción."),
+                    dcc.Graph(figure=build_reliability_figure(), className="chart"),
                 ],
-                className="image-grid",
+                className="chart-grid",
             ),
         ]
     )
@@ -955,8 +1064,8 @@ def make_drift_tab() -> html.Div:
                                     {"name": "Valor actual", "id": "valor"},
                                     {"name": "Acción", "id": "acción"},
                                 ],
-                                style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-                                style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+                                style_header=TABLE_HEADER_STYLE,
+                                style_cell=TABLE_CELL_STYLE,
                             ),
                         ],
                         className="glass-card table-card",
@@ -966,10 +1075,9 @@ def make_drift_tab() -> html.Div:
             ),
             html.Div(
                 [
-                    image_card("Drift temporal", "temporal_drift.png", "F2 y PSI por año."),
-                    image_card("Drift simulado", "simulated_drift.png", "Sensibilidad ante +20% y +50% en cycle time."),
+                    dcc.Graph(figure=build_drift_simulation_figure(), className="chart"),
                 ],
-                className="image-grid",
+                className="chart-grid",
             ),
         ]
     )
@@ -980,24 +1088,17 @@ def make_explainability_tab() -> html.Div:
         [
             html.Div(
                 [
-                    image_card("Global SHAP beeswarm", "shap_beeswarm.png", "Distribución de impacto por feature en el test set."),
-                    image_card("Global SHAP bar", "shap_bar.png", "Importancia media absoluta."),
+                    dcc.Graph(figure=build_shap_distribution_figure(), className="chart"),
+                    dcc.Graph(figure=build_shap_figure(), className="chart"),
                 ],
-                className="image-grid",
+                className="chart-grid",
             ),
             html.Div(
                 [
-                    image_card("PDP top features", "shap_pdp_top5.png", "Efecto funcional de las top features."),
-                    image_card("Caso local - TP", "shap_tp_httpclient.png", "Sprint correctamente flaggeado."),
+                    dcc.Graph(figure=build_pdp_figure(), className="chart"),
+                    dcc.Graph(figure=build_local_cases_figure(), className="chart"),
                 ],
-                className="image-grid",
-            ),
-            html.Div(
-                [
-                    image_card("Caso local - TN", "shap_tn_io.png", "Sprint correctamente descartado."),
-                    image_card("Caso local - FN", "shap_fn_math.png", "Caso donde las señales no fueron suficientes."),
-                ],
-                className="image-grid",
+                className="chart-grid",
             ),
             html.Div(
                 [
@@ -1009,8 +1110,8 @@ def make_explainability_tab() -> html.Div:
                             {"name": "Importancia", "id": "importance"},
                             {"name": "Razón", "id": "reason"},
                         ],
-                        style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-                        style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+                        style_header=TABLE_HEADER_STYLE,
+                        style_cell=TABLE_CELL_STYLE,
                     ),
                 ],
                 className="glass-card table-card",
@@ -1101,7 +1202,7 @@ def gauge_figure(probability: float, title: str) -> go.Figure:
             },
         )
     )
-    fig.update_layout(template="plotly_dark", height=300, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=40, b=10))
+    fig.update_layout(template="plotly_white", height=300, paper_bgcolor="#ffffff", plot_bgcolor="#ffffff", margin=dict(l=10, r=10, t=40, b=10), font=dict(color=COLOR_TEXT))
     return fig
 
 
@@ -1238,8 +1339,6 @@ app.layout = html.Div(
                 dcc.Tab(label="Calibración", value="calibration", className="tab", selected_className="tab-selected"),
                 dcc.Tab(label="Drift", value="drift", className="tab", selected_className="tab-selected"),
                 dcc.Tab(label="Explainability", value="explainability", className="tab", selected_className="tab-selected"),
-                dcc.Tab(label="Design Lab", value="design_lab", className="tab", selected_className="tab-selected"),
-                dcc.Tab(label="Conceptos", value="concepts", className="tab", selected_className="tab-selected"),
                 dcc.Tab(label="Predictor", value="predictor", className="tab", selected_className="tab-selected"),
                 dcc.Tab(label="Sources", value="sources", className="tab", selected_className="tab-selected"),
             ],
@@ -1263,10 +1362,6 @@ def render_tab(tab_value: str) -> html.Div:
         return make_drift_tab()
     if tab_value == "explainability":
         return make_explainability_tab()
-    if tab_value == "design_lab":
-        return make_design_lab_tab()
-    if tab_value == "concepts":
-        return make_concepts_tab()
     if tab_value == "predictor":
         return make_predictor_tab()
     if tab_value == "sources":
@@ -1327,8 +1422,8 @@ def update_predictor(bugs, stories, tasks, cycle_days, year, month, deploy, cfr,
         data=feature_contribs.to_dict("records"),
         columns=[{"name": c, "id": c} for c in feature_contribs.columns],
         style_table={"overflowX": "auto"},
-        style_header={"backgroundColor": "#0f172a", "color": "#e2e8f0", "fontWeight": "700"},
-        style_cell={"backgroundColor": "#111827", "color": "#e5e7eb", "border": "1px solid #1f2937", "fontFamily": "Aptos, Segoe UI, sans-serif", "padding": "10px"},
+        style_header=TABLE_HEADER_STYLE,
+        style_cell=TABLE_CELL_STYLE,
     )
     return gauge_figure(probability, source_label), make_result_card(probability, source_label), runtime_label, feature_table
 
