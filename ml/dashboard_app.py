@@ -1,4 +1,4 @@
-"""ShiftMetrics SI7009 dashboard.
+"""ShiftMetrics ML dashboard.
 
 Dash app for the visualization layer of the project.
 The dashboard unifies pipeline status, model comparison, calibration,
@@ -1300,7 +1300,7 @@ def make_sources_tab() -> html.Div:
     )
 
 
-app = Dash(__name__, title="ShiftMetrics SI7009", suppress_callback_exceptions=True)
+app = Dash(__name__, title="ShiftMetrics", suppress_callback_exceptions=True)
 server = app.server
 
 app.layout = html.Div(

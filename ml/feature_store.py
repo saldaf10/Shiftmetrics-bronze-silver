@@ -1,5 +1,5 @@
 """
-feature_store.py — ShiftMetrics SI7009
+feature_store.py — ShiftMetrics ML Pipeline
 Carga datos desde BigQuery y aplica feature engineering reproducible.
 Toda transformación está aquí — ninguna en los scripts de entrenamiento.
 """

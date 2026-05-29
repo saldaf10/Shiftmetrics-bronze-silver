@@ -8,12 +8,25 @@ Pipeline de datos y machine learning para predicción de defectos escapados en s
 
 ```
 Shiftmetrics-bronze-silver/
-├── Jobs/          # PySpark jobs Bronze → Silver
-├── EDAS/          # Análisis exploratorios por fuente
-├── Gold/          # Tablas BigQuery (sprint_features)
-├── SI7009/        # Pipeline de ML (entrenamiento, evaluación, modelos)
-├── mlflow-server/ # Despliegue del servidor MLflow en Cloud Run
-└── docs/          # Documentación general
+├── etl/
+│   ├── silver/        # PySpark jobs Bronze → Silver (4 fuentes)
+│   └── gold/          # SQL feature store BigQuery (sprint_features)
+├── notebooks/         # Análisis exploratorios por fuente (EDAs)
+│   └── outputs/       # Imágenes y reportes generados
+├── ml/                # Pipeline de ML (entrenamiento, evaluación, dashboard)
+│   └── assets/        # CSS del dashboard Dash
+├── infra/
+│   ├── mlflow/        # Dockerfile para Cloud Run MLflow
+│   ├── setup_workbench.sh
+│   └── upload_ml.sh
+├── docs/
+│   ├── context/       # Notas de sesión y contexto del proyecto
+│   ├── assets/        # Visualizaciones del informe técnico
+│   ├── legacy/        # Documentos históricos
+│   ├── model_card.md
+│   └── technical_report.md
+├── requirements.txt
+└── README.md
 ```
 
 ---
@@ -374,16 +387,16 @@ FROM shiftmetrics_gold.sprint_features;
 
 ---
 
-## ML — Predicción de Defectos Escapados (SI7009)
+## ML — Predicción de Defectos Escapados
 
 Predice si un sprint producirá un **defecto escapado a producción** (`defecto_escapado = 1`), usando datos de Jira en BigQuery. El pipeline corre enteramente en **Vertex AI Workbench** sobre GCP; los experimentos se registran en MLflow (Cloud Run).
 
-La capa de visualización técnica ahora incluye un dashboard en Dash dentro de `SI7009/dashboard_app.py`, con una vista ejecutiva inicial y pestañas para overview, modelo, calibración, drift, explainability, predictor y fuentes.
+La capa de visualización técnica ahora incluye un dashboard en Dash dentro de `ml/dashboard_app.py`, con una vista ejecutiva inicial y pestañas para overview, modelo, calibración, drift, explainability, predictor y fuentes.
 
 Para abrirlo localmente en el repo:
 
 ```bash
-python SI7009/dashboard_app.py
+python ml/dashboard_app.py
 ```
 
 El panel fue diseñado para cumplir con el enfoque del curso: contexto + datos + contraste, y para separar vistas técnicas, narrativas y de sandbox interactivo.
@@ -461,7 +474,7 @@ Se abrirá una terminal negra donde puedes escribir comandos.
 El código ya está en el Workbench. Ir a esa carpeta:
 
 ```bash
-cd /home/samargo1703_gmail_com/shiftmetrics/SI7009
+cd /home/samargo1703_gmail_com/shiftmetrics/ml
 ```
 
 Confirmar con `ls`:
@@ -506,7 +519,7 @@ python -c "import mlflow; mlflow.set_tracking_uri('https://mlflow-server-9195932
 ### Ejecutar el pipeline completo
 
 ```bash
-cd /home/samargo1703_gmail_com/shiftmetrics/SI7009
+cd /home/samargo1703_gmail_com/shiftmetrics/ml
 
 python run_pipeline.py --n-trials 50
 ```
@@ -636,7 +649,7 @@ model_v4 = mlflow.sklearn.load_model("models:/ShiftMetrics-DefectoEscapado/4")
 
 ### Dashboard Dash local
 
-La visualización ejecutiva vive en [SI7009/dashboard_app.py](SI7009/dashboard_app.py). Esa app tiene dos modos:
+La visualización ejecutiva vive en [ml/dashboard_app.py](ml/dashboard_app.py). Esa app tiene dos modos:
 
 - Modo live: intenta leer métricas y parámetros desde MLflow y cargar el champion del registry.
 - Modo offline: si MLflow no responde o el modelo no se puede cargar, usa métricas documentadas y un predictor heurístico para que la UI siga funcionando.
@@ -657,14 +670,14 @@ El dashboard no prende un modelo local por sí mismo; lo carga desde MLflow. Par
 1. Verifica que el servidor MLflow esté disponible en `https://mlflow-server-919593201130.us-central1.run.app`.
 2. Confirma que el registry `ShiftMetrics-DefectoEscapado` tenga el alias `champion` o `production`, o la versión `4`.
 3. Asegúrate de tener acceso al proyecto de GCP y a los artefactos en `gs://shiftmetrics-bronze/mlruns/`.
-4. Ejecuta la app con `python SI7009/dashboard_app.py`.
+4. Ejecuta la app con `python ml/dashboard_app.py`.
 
 Si MLflow está visible pero el dashboard sigue en offline, normalmente significa que la app no pudo resolver uno de estos puntos: tracking URI, alias del registry, permisos, o artefactos del modelo.
 
 #### Comandos útiles
 
 ```bash
-python SI7009/dashboard_app.py
+python ml/dashboard_app.py
 ```
 
 ```python
@@ -688,7 +701,7 @@ import numpy as np
 
 model = joblib.load("/tmp/champion_calibrated.pkl")
 
-# Features en el mismo orden que FEATURE_COLS en SI7009/config.py:
+# Features en el mismo orden que FEATURE_COLS en ml/config.py:
 # num_bugs_sprint, num_stories_sprint, num_tasks_sprint, total_issues_sprint,
 # log_avg_cycle_time, log_bug_story_ratio, log_total_issues,
 # sprint_year, sprint_month_sin, sprint_month_cos,
@@ -780,7 +793,7 @@ Si no responde, esperar ~30 segundos y reintentar.
 
 **Optuna empieza desde cero en vez de reanudar**
 
-Verificar que `optuna_shiftmetrics.db` está en `/home/samargo1703_gmail_com/shiftmetrics/SI7009/`. Si se corrió el pipeline desde otro directorio, el `.db` quedó en otro lugar.
+Verificar que `optuna_shiftmetrics.db` está en `/home/samargo1703_gmail_com/shiftmetrics/ml/`. Si se corrió el pipeline desde otro directorio, el `.db` quedó en otro lugar.
 
 **El modelo no se registra en el MLflow Model Registry**
 ```python
@@ -800,8 +813,8 @@ python run_pipeline.py --n-trials 50 --skip-shap
 
 ### Referencias
 
-- **Informe técnico**: `SI7009/docs/SI7009_informe_tecnico.md`
-- **Model Card**: `SI7009/model_card.md`
-- **Configuración centralizada**: `SI7009/config.py`
+- **Informe técnico**: `docs/technical_report.md`
+- **Model Card**: `docs/model_card.md`
+- **Configuración centralizada**: `ml/config.py`
 - **MLflow UI**: https://mlflow-server-919593201130.us-central1.run.app
 - **Consola GCP**: https://console.cloud.google.com → proyecto `shiftmetrics-analytics`

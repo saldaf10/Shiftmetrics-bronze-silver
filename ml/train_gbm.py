@@ -1,5 +1,5 @@
 """
-train_gbm.py — ShiftMetrics SI7009
+train_gbm.py — ShiftMetrics ML Pipeline
 XGBoost y LightGBM con tuning Bayesiano via Optuna.
 Champion/Challenger: el mejor de los dos pasa a calibración.
 """

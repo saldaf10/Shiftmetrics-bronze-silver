@@ -1,5 +1,5 @@
 """
-config.py — ShiftMetrics SI7009
+config.py — ShiftMetrics ML Pipeline
 Configuración centralizada. Un único lugar para cambiar parámetros.
 """
 

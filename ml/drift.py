@@ -1,5 +1,5 @@
 """
-drift.py — ShiftMetrics SI7009
+drift.py — ShiftMetrics ML Pipeline
 Análisis de concept drift: temporal real (year-by-year) + simulado (+20%/+50%).
 KS tests, PSI, y monitoreo de performance por cohorte temporal.
 """

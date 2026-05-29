@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup_workbench.sh — ShiftMetrics SI7009
+# setup_workbench.sh — ShiftMetrics ML Pipeline
 # Ejecutar UNA VEZ en el Vertex AI Workbench después de crear la instancia.
 # Instala dependencias, configura GCP auth, y sube/descarga el código.
 #
@@ -14,11 +14,11 @@ set -euo pipefail
 
 PROJECT_ID="shiftmetrics-analytics"
 BUCKET="gs://shiftmetrics-bronze"
-SI7009_LOCAL_DIR="$HOME/shiftmetrics/SI7009"
-GCS_CODE_PATH="${BUCKET}/code/SI7009"
+ML_LOCAL_DIR="$HOME/shiftmetrics/ml"
+GCS_CODE_PATH="${BUCKET}/code/ml"
 
 echo "============================================================"
-echo "  ShiftMetrics SI7009 — Workbench Setup"
+echo "  ShiftMetrics ML Pipeline — Workbench Setup"
 echo "============================================================"
 
 # ── 1. Auth y proyecto ────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ gcloud config set project "${PROJECT_ID}"
 
 # ── 2. Crear directorio de trabajo ────────────────────────────────────────────
 echo "[2/5] Creando directorio de trabajo..."
-mkdir -p "${SI7009_LOCAL_DIR}"
+mkdir -p "${ML_LOCAL_DIR}"
 
 # ── 3. Instalar dependencias ──────────────────────────────────────────────────
 echo "[3/5] Instalando dependencias Python..."
@@ -58,14 +58,13 @@ echo "  ✅ Dependencias instaladas"
 # ── 4. Bajar código desde GCS ─────────────────────────────────────────────────
 echo "[4/5] Descargando código desde GCS..."
 
-# Si el código ya está en GCS (subido desde local)
 if gsutil ls "${GCS_CODE_PATH}/" &>/dev/null; then
-    gsutil -m cp -r "${GCS_CODE_PATH}/*" "${SI7009_LOCAL_DIR}/"
+    gsutil -m cp -r "${GCS_CODE_PATH}/*" "${ML_LOCAL_DIR}/"
     echo "  ✅ Código descargado desde ${GCS_CODE_PATH}"
 else
     echo "  ⚠️  Código no encontrado en ${GCS_CODE_PATH}"
     echo "     Sube el código primero desde tu máquina local:"
-    echo "     gsutil -m cp -r SI7009/* ${GCS_CODE_PATH}/"
+    echo "     bash infra/upload_ml.sh"
 fi
 
 # ── 5. Variables de entorno ────────────────────────────────────────────────────
@@ -75,10 +74,10 @@ MLFLOW_URI="https://mlflow-server-919593201130.us-central1.run.app"
 
 cat >> "$HOME/.bashrc" << EOF
 
-# ShiftMetrics SI7009
+# ShiftMetrics ML Pipeline
 export MLFLOW_TRACKING_URI="${MLFLOW_URI}"
 export GCP_PROJECT="${PROJECT_ID}"
-export PYTHONPATH="${SI7009_LOCAL_DIR}:\$PYTHONPATH"
+export PYTHONPATH="${ML_LOCAL_DIR}:\$PYTHONPATH"
 EOF
 
 echo "  ✅ Variables configuradas en ~/.bashrc"
@@ -86,5 +85,5 @@ echo ""
 echo "============================================================"
 echo "  Setup completo."
 echo "  Recarga el shell: source ~/.bashrc"
-echo "  Ejecuta el pipeline: cd ${SI7009_LOCAL_DIR} && python run_pipeline.py"
+echo "  Ejecuta el pipeline: cd ${ML_LOCAL_DIR} && python run_pipeline.py"
 echo "============================================================"

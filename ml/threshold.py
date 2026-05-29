@@ -1,5 +1,5 @@
 """
-threshold.py — ShiftMetrics SI7009
+threshold.py — ShiftMetrics ML Pipeline
 Selección de threshold operacional: F2-óptimo + ROI (cost_fn=3xcost_fp).
 PR curve, curva F2 vs threshold, análisis de impacto por umbral.
 """

@@ -1,5 +1,5 @@
 """
-baselines.py — ShiftMetrics SI7009
+baselines.py — ShiftMetrics ML Pipeline
 Dos baselines que todo modelo debe superar en F2.
 
 Baseline 1 — MajorityClassifier:  predice siempre la clase mayoritaria (1).

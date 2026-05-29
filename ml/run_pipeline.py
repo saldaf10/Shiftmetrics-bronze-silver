@@ -1,5 +1,5 @@
 """
-run_pipeline.py — ShiftMetrics SI7009
+run_pipeline.py — ShiftMetrics ML Pipeline
 Orquestador end-to-end: corre todas las rondas en orden.
 
 Rondas:
@@ -41,7 +41,7 @@ from threshold import run_threshold_analysis
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="ShiftMetrics SI7009 Pipeline")
+    p = argparse.ArgumentParser(description="ShiftMetrics ML Pipeline")
     p.add_argument("--n-trials",     type=int,   default=OPTUNA_N_TRIALS,
                    help="Optuna trials por modelo GBM (default: OPTUNA_N_TRIALS en config)")
     p.add_argument("--skip-lr",      action="store_true", help="Saltar ronda 2 (LR)")
@@ -57,7 +57,7 @@ def parse_args():
 def main():
     args = parse_args()
 
-    print("ShiftMetrics SI7009 - Full ML Pipeline")
+    print("ShiftMetrics — Full ML Pipeline")
     print(f"  Experiment : {MLFLOW_EXPERIMENT}")
     print(f"  Trials     : {args.n_trials}")
     print("-" * 55)

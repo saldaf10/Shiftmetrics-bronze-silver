@@ -1,5 +1,5 @@
 """
-metrics.py — ShiftMetrics SI7009
+metrics.py — ShiftMetrics ML Pipeline
 Suite de métricas unificada. Una sola función para evaluar cualquier modelo.
 """
 
@@ -22,7 +22,7 @@ def compute_metrics(
     label: str = "",
 ) -> dict:
     """
-    Calcula toda la suite de métricas requeridas por SI7009.
+    Calcula toda la suite de métricas del pipeline.
 
     Retorna dict con:
       f2, precision, recall, pr_auc, roc_auc, brier, tn, fp, fn, tp

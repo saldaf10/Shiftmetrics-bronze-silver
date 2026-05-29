@@ -1,5 +1,5 @@
 """
-train_lr.py — ShiftMetrics SI7009
+train_lr.py — ShiftMetrics ML Pipeline
 Logistic Regression con grid search sobre C, penalty y solver.
 Challenger de ronda 2 vs. mejor baseline.
 """

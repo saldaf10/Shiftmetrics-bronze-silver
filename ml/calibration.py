@@ -1,5 +1,5 @@
 """
-calibration.py — ShiftMetrics SI7009
+calibration.py — ShiftMetrics ML Pipeline
 Platt scaling + isotonic regression sobre el champion model.
 Compara Brier antes/después y genera reliability diagrams.
 """

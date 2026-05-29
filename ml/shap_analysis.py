@@ -1,5 +1,5 @@
 """
-shap_analysis.py — ShiftMetrics SI7009
+shap_analysis.py — ShiftMetrics ML Pipeline
 Explicabilidad con SHAP: global (beeswarm + bar) y 3 casos locales.
 Requiere el modelo calibrado final (champion).
 """
