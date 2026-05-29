@@ -1,0 +1,17 @@
+{
+  "f2": 0.9364607379005438,
+  "f1": 0.8799632352941177,
+  "precision": 0.7995657257391013,
+  "recall": 0.9783363989372573,
+  "roc_auc": 0.8874080176103818,
+  "pr_auc": 0.9504495620804593,
+  "brier": 0.11716912083966079,
+  "flagging_rate": 0.8958551548705671,
+  "n_test": 6683,
+  "n_positives_test": 4893,
+  "threshold": 0.22,
+  "fecha_evaluacion": "2026-05-29 19:37",
+  "modelo_familia": "XGBoost (calibrado isotonic)",
+  "registry_name": "ShiftMetrics-DefectoEscapado",
+  "registry_version": "v4"
+}

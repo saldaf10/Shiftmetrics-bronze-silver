@@ -1,6 +1,11 @@
-# ShiftMetrics SI7009 — ML Pipeline Dependencies
+# ShiftMetrics dependencies
 # Python 3.10+ requerido
 # Instalar: pip install -r requirements.txt
+
+# App / visualizacion
+streamlit>=1.30
+plotly==5.24.1
+dash==2.18.2
 
 # Data
 google-cloud-bigquery==3.27.0
@@ -17,17 +22,13 @@ imbalanced-learn==0.12.4
 optuna==4.1.0
 optuna-integration[sklearn]==4.1.0
 
-# Interpretability
+# Interpretability / experiment tracking
 shap==0.46.0
-
-# Experiment Tracking
 mlflow==2.18.0
 
-# Visualization
+# Visualization extras
 matplotlib==3.9.3
 seaborn==0.13.2
-plotly==5.24.1
-dash==2.18.2
 
 # Calibration & Metrics
 scipy==1.14.1
