@@ -1,1 +1,0 @@
-"""Utilidades del dashboard ShiftMetrics."""
