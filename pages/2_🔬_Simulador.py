@@ -14,7 +14,7 @@ from utils.estilo import (aplicar_estilo, ROJO_ATENCION, AMBAR_MEDIO, VERDE_OK,
                           GRIS_FUERTE, GRIS_MEDIO)
 
 
-from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+from utils.theme import aplicar_tema, C, nota, separador
 aplicar_tema("Simulador · ShiftMetrics", "🔬")
 
 

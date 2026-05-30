@@ -12,7 +12,7 @@ from utils.estilo import (aplicar_estilo, ROJO_ATENCION, AMBAR_MEDIO, VERDE_OK,
                           AZUL_CORP, GRIS_FUERTE, GRIS_MEDIO, GRIS_SUAVE)
 
 
-from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+from utils.theme import aplicar_tema, C, nota, separador
 aplicar_tema("Salud · ShiftMetrics", "📡")
 
 

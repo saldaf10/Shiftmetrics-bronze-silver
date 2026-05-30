@@ -8,7 +8,7 @@ from utils.data import cargar_snapshot, cargar_metricas, feature_descripcion
 from utils.estilo import (aplicar_estilo, color_riesgo, emoji_riesgo,
                           ROJO_ATENCION, AMBAR_MEDIO, VERDE_OK, GRIS_MEDIO)
 
-from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+from utils.theme import aplicar_tema, C, nota, separador
 aplicar_tema("Riesgo · ShiftMetrics", "🚦")
 
 st.markdown("## 🚦 Riesgo del periodo")

@@ -2,6 +2,7 @@
 from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
 aplicar_tema("Exploracion · ShiftMetrics", "📊")
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 from utils.eda_data import *
 from utils.estilo import (aplicar_estilo, AZUL_CORP, GRIS_MEDIO, GRIS_FUERTE,
