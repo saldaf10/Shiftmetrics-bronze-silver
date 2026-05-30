@@ -1,13 +1,12 @@
-"""Exploracion de las fuentes de datos del proyecto."""
-from __future__ import annotations
-import plotly.graph_objects as go
+"""Exploracion de las fuentes de datos."""
+from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+aplicar_tema("Exploracion · ShiftMetrics", "📊")
 import plotly.express as px
 import streamlit as st
 from utils.eda_data import *
 from utils.estilo import (aplicar_estilo, AZUL_CORP, GRIS_MEDIO, GRIS_FUERTE,
                           ROJO_ATENCION, AMBAR_MEDIO, VERDE_OK, GRIS_SUAVE)
 
-st.set_page_config(page_title="Exploracion · ShiftMetrics", page_icon="📊", layout="wide")
 
 st.markdown("## 📊 Exploracion de las fuentes de datos")
 st.markdown(
@@ -39,7 +38,7 @@ if fuente == "PROMISE":
                 marker_colors=[VERDE_OK, ROJO_ATENCION],
                 hole=0.45, textinfo='label+percent'))
             fig.update_layout(title="Modulos con y sin defectos", showlegend=False)
-            aplicar_estilo(fig, alto=350)
+            aplicar_estilo(fig, alto=420)
             st.plotly_chart(fig, use_container_width=True)
         with col2:
             total = sum(PROMISE_BALANCE.values())
@@ -93,14 +92,14 @@ elif fuente == "Apache JIRA":
                                marker_color=AZUL_CORP,
                                text=[f"{f:,}" for f in APACHE_COLECCIONES["filas"]], textposition="outside"))
         fig.update_layout(title="Filas por coleccion", yaxis_title="Filas", yaxis_type="log")
-        aplicar_estilo(fig, alto=350)
+        aplicar_estilo(fig, alto=420)
         st.plotly_chart(fig, use_container_width=True)
         st.markdown("Issues tiene 112 columnas, pero solo 65 estan completas (>50% nulos en el resto).")
     with tab2:
         fig = go.Figure(go.Bar(x=APACHE_ISSUES_POR_ANO["ano"], y=APACHE_ISSUES_POR_ANO["issues"],
                                marker_color=AZUL_CORP, text=APACHE_ISSUES_POR_ANO["issues"], textposition="outside"))
         fig.update_layout(title="Issues creados por ano (muestra)", xaxis_title="Ano", yaxis_title="Issues", xaxis=dict(dtick=1))
-        aplicar_estilo(fig, alto=350)
+        aplicar_estilo(fig, alto=420)
         st.plotly_chart(fig, use_container_width=True)
         st.markdown("Los gaps (2007-08, 2012-13) son del muestreo del EDA. El dataset completo en Gold cubre 2000-2021.")
     with tab3:
@@ -147,7 +146,7 @@ elif fuente == "Red Hat JIRA":
             fig.add_trace(go.Bar(x=[label], y=[val], name=label, marker_color=color,
                                  text=[f"{val:.0f}d"], textposition="outside"))
         fig.update_layout(title="Percentiles del Cycle Time", yaxis_title="Dias", showlegend=False)
-        aplicar_estilo(fig, alto=350)
+        aplicar_estilo(fig, alto=420)
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(f"p50={ct['p50']:.0f}d pero p90={ct['p90']:.0f}d. Max {ct['max']:,.0f}d (~19 anos). log1p + flag cycle_missing.")
 
@@ -165,7 +164,7 @@ elif fuente == "GHArchive":
                                text=[f"{c:,} ({p:.1f}%)" for c,p in zip(evt["conteo"][::-1], evt["pct"][::-1])],
                                textposition="outside"))
         fig.update_layout(title="Tipos de evento GHArchive 2022", xaxis_title="Cantidad")
-        aplicar_estilo(fig, alto=450)
+        aplicar_estilo(fig, alto=500)
         st.plotly_chart(fig, use_container_width=True)
         st.markdown("En azul los relevantes para DORA (PushEvent→deploy freq, PullRequestEvent→CFR).")
     with tab2:
@@ -190,7 +189,7 @@ elif fuente == "GHArchive":
             marker_colors=[VERDE_OK, ROJO_ATENCION, GRIS_SUAVE],
             hole=0.45, textinfo='label+percent'))
         fig.update_layout(title="Descomposicion de Pull Requests")
-        aplicar_estilo(fig, alto=350)
+        aplicar_estilo(fig, alto=420)
         st.plotly_chart(fig, use_container_width=True)
         st.markdown(f"CFR proxy = {cfr['cfr_proxy']:.1%}. No es CFR real (haria falta medir rollbacks en produccion).")
     st.markdown("#### Distribucion horaria")
@@ -198,7 +197,7 @@ elif fuente == "GHArchive":
                            marker_color=AZUL_CORP, text=GHARCHIVE_TEMPORAL["eventos"], textposition="outside"))
     fig.update_layout(title="Eventos Apache por hora (UTC)", xaxis_title="Hora UTC", yaxis_title="Eventos",
                       xaxis=dict(tickvals=[0,6,12,18], ticktext=["00h","06h","12h","18h"]))
-    aplicar_estilo(fig, alto=300)
+    aplicar_estilo(fig, alto=380)
     st.plotly_chart(fig, use_container_width=True)
     st.markdown("Pico a las 12h UTC — horario laboral europeo y costa este de EE.UU.")
 
@@ -217,7 +216,7 @@ elif fuente == "Vista general":
         marker_color=[GRIS_MEDIO, AZUL_CORP, AZUL_CORP, GRIS_MEDIO],
         text=["15.8K","1.9K","505K","5.0K"], textposition="outside"))
     fig.update_layout(title="Tamano de cada fuente (filas EDA)", yaxis_title="Filas", yaxis_type="log")
-    aplicar_estilo(fig, alto=350)
+    aplicar_estilo(fig, alto=420)
     st.plotly_chart(fig, use_container_width=True)
     st.markdown("""**Lo que nos llevamos al modelo:**
 - 70% positivos → baseline trivial da F2=0.916. Hay que ganar con precision.

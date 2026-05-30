@@ -14,7 +14,8 @@ from utils.estilo import (aplicar_estilo, ROJO_ATENCION, AMBAR_MEDIO, VERDE_OK,
                           GRIS_FUERTE, GRIS_MEDIO)
 
 
-st.set_page_config(page_title="Simulador · ShiftMetrics", page_icon="🔬", layout="wide")
+from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+aplicar_tema("Simulador · ShiftMetrics", "🔬")
 
 
 # --- Header ---
@@ -343,7 +344,7 @@ fig_sens.update_layout(
     yaxis_title="Probabilidad de defecto escapado",
     yaxis=dict(range=[0, 1], tickformat=".0%"),
 )
-aplicar_estilo(fig_sens, alto=380)
+aplicar_estilo(fig_sens, alto=440)
 st.plotly_chart(fig_sens, use_container_width=True)
 
 

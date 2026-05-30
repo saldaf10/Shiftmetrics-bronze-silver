@@ -8,7 +8,8 @@ from utils.data import cargar_snapshot, cargar_metricas, feature_descripcion
 from utils.estilo import (aplicar_estilo, color_riesgo, emoji_riesgo,
                           ROJO_ATENCION, AMBAR_MEDIO, VERDE_OK, GRIS_MEDIO)
 
-st.set_page_config(page_title="Riesgo · ShiftMetrics", page_icon="🚦", layout="wide")
+from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+aplicar_tema("Riesgo · ShiftMetrics", "🚦")
 
 st.markdown("## 🚦 Riesgo del periodo")
 st.markdown(
@@ -58,7 +59,7 @@ fig.add_vline(x=met['threshold'], line_dash="dash", line_color="#374151",
               annotation_text=f"Umbral {met['threshold']:.3f}")
 fig.update_layout(barmode="overlay", xaxis_title="Probabilidad", yaxis_title="Sprints",
                   legend=dict(orientation="h", y=1.02))
-aplicar_estilo(fig, alto=300)
+aplicar_estilo(fig, alto=380)
 st.plotly_chart(fig, use_container_width=True)
 st.caption("A la derecha del umbral estan los sprints que conviene revisar.")
 
@@ -117,7 +118,7 @@ if opciones:
                                   text=[f"{v:+.2f}" for v in drv["valor"]], textposition="outside"))
         fig_d.update_layout(title="Que empuja el riesgo", xaxis_title="Contribucion",
                             yaxis=dict(autorange="reversed"), showlegend=False)
-        aplicar_estilo(fig_d, alto=250)
+        aplicar_estilo(fig_d, alto=320)
         st.plotly_chart(fig_d, use_container_width=True)
 
     bugs_txt = int(row['num_bugs_sprint'])

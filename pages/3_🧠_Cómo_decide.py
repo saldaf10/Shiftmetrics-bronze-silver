@@ -13,7 +13,8 @@ from utils.estilo import (aplicar_estilo, ROJO_ATENCION, AMBAR_MEDIO, VERDE_OK,
                           AZUL_CORP, GRIS_FUERTE, GRIS_MEDIO, GRIS_SUAVE)
 
 
-st.set_page_config(page_title="Cómo decide · ShiftMetrics", page_icon="🧠", layout="wide")
+from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+aplicar_tema("Como decide · ShiftMetrics", "🧠")
 
 
 st.markdown("## 🧠 Cómo decide el modelo")
@@ -60,7 +61,7 @@ fig_imp.update_layout(
     yaxis=dict(autorange="reversed"),
     bargap=0.25,
 )
-aplicar_estilo(fig_imp, alto=420)
+aplicar_estilo(fig_imp, alto=460)
 
 col_imp, col_text = st.columns([3, 2])
 
@@ -146,7 +147,7 @@ with col_cal:
         yaxis=dict(title="Frecuencia real observada", range=[0, 1], tickformat=".0%"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
     )
-    aplicar_estilo(fig_cal, alto=380)
+    aplicar_estilo(fig_cal, alto=440)
     st.plotly_chart(fig_cal, use_container_width=True)
 
 
@@ -249,7 +250,7 @@ fig_comp.update_layout(
     yaxis=dict(range=[0, 1.15], title="Valor"),
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
 )
-aplicar_estilo(fig_comp, alto=360)
+aplicar_estilo(fig_comp, alto=460)
 
 col_g, col_t = st.columns([3, 2])
 with col_g:

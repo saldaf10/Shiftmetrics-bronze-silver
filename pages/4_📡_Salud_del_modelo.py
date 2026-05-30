@@ -12,8 +12,8 @@ from utils.estilo import (aplicar_estilo, ROJO_ATENCION, AMBAR_MEDIO, VERDE_OK,
                           AZUL_CORP, GRIS_FUERTE, GRIS_MEDIO, GRIS_SUAVE)
 
 
-st.set_page_config(page_title="Salud del modelo · ShiftMetrics",
-                   page_icon="📡", layout="wide")
+from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+aplicar_tema("Salud · ShiftMetrics", "📡")
 
 
 st.markdown("## 📡 Salud del modelo")
@@ -158,7 +158,7 @@ fig_temp.update_layout(
     yaxis=dict(title="F2-score", range=[0.85, 1.0]),
     showlegend=False,
 )
-aplicar_estilo(fig_temp, alto=400)
+aplicar_estilo(fig_temp, alto=480)
 
 col_g, col_n = st.columns([3, 2])
 
@@ -245,7 +245,7 @@ fig_psi.update_layout(
     yaxis=dict(autorange="reversed"),
     bargap=0.3,
 )
-aplicar_estilo(fig_psi, alto=460)
+aplicar_estilo(fig_psi, alto=480)
 
 
 col_psi, col_acc = st.columns([3, 2])

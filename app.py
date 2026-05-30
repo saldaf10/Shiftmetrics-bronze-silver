@@ -1,93 +1,110 @@
 """ShiftMetrics — pagina de inicio."""
-from __future__ import annotations
+from utils.theme import aplicar_tema, COLORS, card, badge, stat_grande, nota_lateral, separador
+aplicar_tema("ShiftMetrics", "⚡")
+
 import streamlit as st
-from utils.data import cargar_metricas
-
-st.set_page_config(page_title="ShiftMetrics", page_icon="🎯", layout="wide",
-                   initial_sidebar_state="expanded")
-
-st.markdown("""
-<style>
-  html, body, [class*="css"] { font-family: 'Inter', 'Segoe UI', sans-serif; }
-  #MainMenu, footer, header[data-testid="stHeader"] { visibility: hidden; }
-  [data-testid="stMetric"] {
-    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
-    padding: 16px 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-  }
-  [data-testid="stSidebar"] { background: #f9fafb; }
-</style>
-""", unsafe_allow_html=True)
+from utils.data import cargar_metricas, get_data_source
 
 met = cargar_metricas()
-
-# --- Indicador de fuente ---
-from utils.data import get_data_source
 src = get_data_source()
-if src["connected"]:
-    st.sidebar.success(f"📡 Conectado a MLflow")
-    st.sidebar.caption(f"Servidor: {src.get('source', 'mlflow')}")
-else:
-    st.sidebar.warning("📁 Datos locales (MLflow no disponible)")
-    if src.get("error"):
-        st.sidebar.caption(f"Razon: {src['error'][:80]}")
 
-st.sidebar.markdown("---")
+# Sidebar branding
+with st.sidebar:
+    st.markdown("# ⚡ ShiftMetrics")
+    st.markdown("Prediccion de defectos escapados en sprints Apache.")
+    st.markdown("---")
+    if src["connected"]:
+        st.success("📡 MLflow conectado")
+    else:
+        st.info("📁 Modo offline")
+    st.markdown("---")
+    st.caption(f"Registry: {met.get('registry_name','')} {met.get('registry_version','')}")
 
-st.markdown("<h1 style='margin-bottom:0'>ShiftMetrics</h1>", unsafe_allow_html=True)
-st.markdown("Prediccion de defectos escapados en sprints del ecosistema Apache.")
-st.divider()
+# Hero
+st.markdown(
+    f"<div style='background: linear-gradient(135deg, {COLORS['brand']} 0%, #312e81 100%); "
+    f"border-radius:20px; padding:40px 48px; margin-bottom:24px;'>"
+    f"<h1 style='color:white; margin:0; font-size:42px;'>⚡ ShiftMetrics</h1>"
+    f"<p style='color:#c7d2fe; font-size:18px; margin-top:8px; max-width:700px;'>"
+    f"Saber en cuales sprints concentrar QA antes del cierre "
+    f"para que los bugs no se escapen a produccion.</p>"
+    f"<div style='margin-top:16px;'>"
+    + badge(f"F2 = {met.get('f2',0):.3f}", "success") + "  "
+    + badge(f"Recall = {met.get('recall',0):.3f}", "success") + "  "
+    + badge(f"Fuente: {met.get('source','local')}", "brand")
+    + f"</div></div>",
+    unsafe_allow_html=True
+)
 
-col_a, col_b = st.columns([3, 2])
+separador()
 
-with col_a:
-    st.markdown("### Que resuelve esto")
-    st.markdown(
-        "<div style='background:#f3f4f6; border-left:4px solid #1e3a8a; "
-        "padding:18px 22px; border-radius:6px; font-size:17px; color:#111827;'>"
-        "<b>¿En cuales sprints vale la pena reforzar la revision de calidad "
-        "antes del cierre, para que no se escape un bug a produccion?</b>"
-        "</div>", unsafe_allow_html=True)
-    st.markdown(" ")
-    st.markdown(
-        "El modelo le asigna a cada sprint una probabilidad de defecto escapado. "
-        "Si esa probabilidad pasa del umbral (0.220), el sprint se marca para revision. "
-        "No reemplaza el criterio del equipo — lo que hace es ordenar la cola de trabajo "
-        "para que QA no pierda tiempo revisando sprints que probablemente estan bien."
-    )
+# KPIs principales — con espacio
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("F2-score", f"{met.get('f2',0):.3f}",
+          help="Metrica principal. Penaliza mas dejar pasar un bug que dar alerta falsa.")
+c2.metric("Recall", f"{met.get('recall',0):.3f}",
+          help="De los sprints con bug real, cuantos logro marcar.")
+c3.metric("Precision", f"{met.get('precision',0):.3f}",
+          help="De las alertas emitidas, cuantas acertaron.")
+c4.metric("Brier score", f"{met.get('brier',0):.3f}",
+          help="Calibracion de probabilidades. Menor es mejor.")
 
-with col_b:
-    st.markdown("### Numeros del modelo")
-    c1, c2 = st.columns(2)
-    c1.metric("F2", f"{met['f2']:.3f}",
-              help="Metrica principal. Penaliza mas dejar pasar un bug que dar una alerta falsa.")
-    c2.metric("Recall", f"{met['recall']:.3f}",
-              help="De los sprints que si tenian bug, cuantos logro marcar.")
-    c1.metric("Precision", f"{met['precision']:.3f}",
-              help="De los que marco como riesgo, cuantos realmente tenian bug.")
-    c2.metric("Brier", f"{met['brier']:.3f}",
-              help="Error de calibracion. Mas bajo = las probabilidades son mas creibles.")
+separador()
 
-st.divider()
+# Pregunta de oro
+st.markdown("### 🎯 La pregunta que resolvemos")
+st.markdown(
+    f"<div style='background:{COLORS['brand_lt']}; border:2px solid {COLORS['brand']}; "
+    f"border-radius:14px; padding:24px 28px; font-size:18px; color:{COLORS['text']}; "
+    f"line-height:1.5; text-align:center;'>"
+    f"<b>¿En cuales sprints hay que reforzar la revision de calidad "
+    f"antes del cierre para evitar que un defecto llegue a produccion?</b>"
+    f"</div>",
+    unsafe_allow_html=True
+)
 
-st.markdown("### Que hay en cada seccion")
+separador()
+
+# Navegacion con cards
+st.markdown("### Recorrido del tablero")
+
 col1, col2, col3, col4, col5 = st.columns(5)
 
-with col1:
-    st.markdown("**📊 Exploración**\n\nGraficos de los EDAs iniciales sobre las 4 fuentes de datos del proyecto.")
-with col2:
-    st.markdown("**🚦 Riesgo**\n\nRanking de sprints de mayor a menor probabilidad. Aca se toman las decisiones.")
-with col3:
-    st.markdown("**🔬 Simulador**\n\nCambiar los numeros de un sprint hipotetico y ver como se mueve el riesgo.")
-with col4:
-    st.markdown("**🧠 Explicabilidad**\n\nQue variables pesan mas y por que las probabilidades son creibles.")
-with col5:
-    st.markdown("**📡 Salud**\n\nSi el modelo se esta degradando con el tiempo y si toca reentrenar.")
+sections = [
+    (col1, "📊", "Exploracion", "Graficos de los 4 EDAs iniciales — PROMISE, Apache JIRA, Red Hat y GHArchive."),
+    (col2, "🚦", "Riesgo", "Ranking de sprints por probabilidad. La decision empieza aca."),
+    (col3, "🔬", "Simulador", "Probar un sprint hipotetico y ver que mueve el riesgo."),
+    (col4, "🧠", "Explicabilidad", "Que variables pesan y por que las probabilidades son creibles."),
+    (col5, "📡", "Salud", "Si el modelo se esta degradando y si toca reentrenar."),
+]
 
-st.markdown(" ")
-fuente_label = "MLflow" if met.get("source") == "mlflow" else "datos locales"
-st.caption(
-    f"Champion: {met.get('modelo_familia','')} · "
-    f"{met.get('registry_name','')} {met.get('registry_version','')} · "
+for col, icon, title, desc in sections:
+    with col:
+        st.markdown(
+            f"<div style='background:{COLORS['bg3']}; border:1px solid {COLORS['border']}; "
+            f"border-radius:14px; padding:20px; min-height:160px;'>"
+            f"<div style='font-size:28px; margin-bottom:8px;'>{icon}</div>"
+            f"<div style='font-weight:700; color:{COLORS['text']}; font-size:15px; margin-bottom:6px;'>{title}</div>"
+            f"<div style='color:{COLORS['text2']}; font-size:13px; line-height:1.5;'>{desc}</div>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+separador()
+
+nota_lateral(
+    "Las paginas estan en orden narrativo en el menu lateral, "
+    "pero cada una se puede leer independiente."
+)
+
+separador()
+
+# Footer
+st.markdown(
+    f"<div style='text-align:center; color:{COLORS['text3']}; font-size:12px; padding:16px 0;'>"
+    f"ShiftMetrics · {met.get('modelo_familia','')} · "
     f"Evaluado: {met.get('fecha_evaluacion','')} · "
-    f"Fuente: {fuente_label}"
+    f"Fuente: {'MLflow' if met.get('source')=='mlflow' else 'datos locales'}"
+    f"</div>",
+    unsafe_allow_html=True
 )
