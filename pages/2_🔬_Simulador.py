@@ -21,8 +21,8 @@ st.set_page_config(page_title="Simulador · ShiftMetrics", page_icon="🔬", lay
 st.markdown("## 🔬 Simulador de sprint")
 st.markdown(
     "<p style='color:#6b7280; font-size:16px;'>"
-    "Ajustar las características de un sprint hipotético y observar cómo se mueve "
-    "su probabilidad estimada. Útil para entender qué variables influyen más."
+    "Mover los numeros de un sprint inventado y ver como cambia "
+    "la probabilidad. Sirve para entender que mueve el riesgo."
     "</p>",
     unsafe_allow_html=True
 )
@@ -43,8 +43,8 @@ modo = st.radio(
     "Nivel de detalle",
     ["Modo básico (5 variables principales)", "Modo avanzado (todas las variables)"],
     horizontal=True,
-    help="El modo básico calcula automáticamente las variables derivadas. "
-         "El modo avanzado permite controlarlas una por una."
+    help="El basico calcula las derivadas solo. "
+         "El avanzado deja mover todo a mano."
 )
 
 
@@ -61,7 +61,7 @@ with col_inputs:
         col1, col2 = st.columns(2)
         num_bugs = col1.number_input(
             "Bugs en el sprint", min_value=0, max_value=100, value=5, step=1,
-            help="Número total de issues clasificados como bug."
+            help="Cuantos bugs tiene este sprint."
         )
         num_stories = col2.number_input(
             "Stories en el sprint", min_value=0, max_value=100, value=8, step=1
@@ -72,7 +72,7 @@ with col_inputs:
         cycle_days = col2.number_input(
             "Tiempo de ciclo promedio (días)", min_value=0.0, max_value=2000.0,
             value=45.0, step=5.0,
-            help="Tiempo promedio entre apertura y cierre de un issue del sprint."
+            help="Promedio de dias que tarda un issue en cerrarse."
         )
 
         col3, col4 = st.columns(2)
@@ -132,7 +132,7 @@ with col_inputs:
         deploy_freq = col5.number_input(
             "Despliegues por semana",
             min_value=0.0, max_value=20.0, value=0.0, step=0.1,
-            help="Métrica DORA. Por defecto se marca como faltante."
+            help="Metrica DORA. Si no la tienes, dejala en 0."
         )
         cfr = col6.number_input(
             "Tasa de cambios fallidos", min_value=0.0, max_value=1.0,
@@ -247,8 +247,8 @@ st.divider()
 st.markdown("### Análisis de sensibilidad")
 st.markdown(
     "<p style='color:#6b7280; font-size:14px;'>"
-    "Cómo cambiaría la probabilidad si moviéramos una sola variable manteniendo "
-    "las demás fijas. Permite identificar palancas de acción."
+    "Como cambiaria la probabilidad si movemos una variable dejando "
+    "el resto fijo. Ayuda a ver cuales son las palancas."
     "</p>",
     unsafe_allow_html=True
 )

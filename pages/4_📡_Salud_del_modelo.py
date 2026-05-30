@@ -19,9 +19,9 @@ st.set_page_config(page_title="Salud del modelo · ShiftMetrics",
 st.markdown("## 📡 Salud del modelo")
 st.markdown(
     "<p style='color:#6b7280; font-size:16px;'>"
-    "Si el desempeño se está deteriorando con el tiempo o si hay variables "
-    "cuyo comportamiento ya no se parece al de los datos con los que el modelo "
-    "se entrenó, conviene revisar la conveniencia de reentrenar."
+    "Si el desempeño se esta cayendo o si hay variables "
+    "que ya no se parecen a los datos con los que "
+    "se entreno, puede que toque reentrenar."
     "</p>",
     unsafe_allow_html=True
 )
@@ -205,9 +205,9 @@ st.divider()
 st.markdown("### Estabilidad de las variables (PSI)")
 st.markdown(
     "<p style='color:#6b7280; font-size:14px;'>"
-    "El índice de estabilidad poblacional (PSI) mide qué tanto cambió la "
-    "distribución de cada variable entre los datos de entrenamiento "
-    "(2000-2014) y los datos recientes. Por encima de 0.25 conviene revisar."
+    "El PSI mide que tanto cambio la "
+    "distribucion de cada variable entre los datos de entrenamiento "
+    "(2000-2014) y los recientes. Si pasa de 0.25 hay que mirar."
     "</p>",
     unsafe_allow_html=True
 )

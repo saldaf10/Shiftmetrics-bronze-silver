@@ -19,8 +19,8 @@ st.set_page_config(page_title="Cómo decide · ShiftMetrics", page_icon="🧠", 
 st.markdown("## 🧠 Cómo decide el modelo")
 st.markdown(
     "<p style='color:#6b7280; font-size:16px;'>"
-    "Qué variables pesan más para asignar el riesgo, y por qué las probabilidades "
-    "que entrega son confiables como guía operativa."
+    "Que variables pesan mas y por que las probabilidades "
+    "que da el modelo son creibles para tomar decisiones."
     "</p>",
     unsafe_allow_html=True
 )
@@ -107,9 +107,9 @@ st.divider()
 st.markdown("### Las probabilidades son fieles a la realidad")
 st.markdown(
     "<p style='color:#6b7280; font-size:14px;'>"
-    "Cuando el modelo dice <i>'30% de probabilidad'</i>, en la práctica deberían "
-    "haber defectos escapados en aproximadamente 30 de cada 100 sprints similares. "
-    "La curva de confiabilidad valida que esto ocurra."
+    "Cuando el modelo dice '30%', en la practica deberian "
+    "haber bugs escapados en mas o menos 30 de cada 100 sprints parecidos. "
+    "Esta curva verifica que eso se cumpla."
     "</p>",
     unsafe_allow_html=True
 )
@@ -201,8 +201,8 @@ st.divider()
 st.markdown("### Comparación con la línea base")
 st.markdown(
     "<p style='color:#6b7280; font-size:14px;'>"
-    "La forma más sencilla de predecir defectos escapados es decir <i>siempre sí</i>, "
-    "aprovechando que la clase positiva es mayoritaria. "
+    "La forma mas facil de predecir bugs escapados es decir siempre si, "
+    "aprovechando que la mayoria de sprints tienen algun bug. "
     "El modelo gana por <b>precisión</b>, no por capturar más alarmas."
     "</p>",
     unsafe_allow_html=True
