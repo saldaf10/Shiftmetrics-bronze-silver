@@ -1,5 +1,5 @@
 """Exploracion de las fuentes de datos."""
-from utils.theme import aplicar_tema, COLORS, nota_lateral, separador
+from utils.theme import aplicar_tema, C, nota, separador, seccion_titulo
 aplicar_tema("Exploracion · ShiftMetrics", "📊")
 import plotly.express as px
 import plotly.graph_objects as go
