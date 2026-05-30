@@ -32,8 +32,15 @@ st.divider()
 # --- Cargar modelo ---
 artefactos = cargar_champion()
 modelo    = artefactos["model"]
-features  = artefactos["feature_cols"]
-umbral    = artefactos["threshold"]
+features  = artefactos.get("feature_cols", [])
+umbral    = artefactos.get("threshold", 0.220)
+
+# Indicador de fuente del modelo
+modelo_source = artefactos.get("source", "local")
+if "mlflow" in str(modelo_source):
+    st.sidebar.success(f"Modelo: MLflow ({modelo_source})")
+else:
+    st.sidebar.info(f"Modelo: {modelo_source}")
 metricas  = cargar_metricas()
 desc      = feature_descripcion()
 

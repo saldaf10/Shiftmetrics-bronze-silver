@@ -20,6 +20,19 @@ st.markdown("""
 
 met = cargar_metricas()
 
+# --- Indicador de fuente ---
+from utils.data import get_data_source
+src = get_data_source()
+if src["connected"]:
+    st.sidebar.success(f"📡 Conectado a MLflow")
+    st.sidebar.caption(f"Servidor: {src.get('source', 'mlflow')}")
+else:
+    st.sidebar.warning("📁 Datos locales (MLflow no disponible)")
+    if src.get("error"):
+        st.sidebar.caption(f"Razon: {src['error'][:80]}")
+
+st.sidebar.markdown("---")
+
 st.markdown("<h1 style='margin-bottom:0'>ShiftMetrics</h1>", unsafe_allow_html=True)
 st.markdown("Prediccion de defectos escapados en sprints del ecosistema Apache.")
 st.divider()
@@ -71,8 +84,10 @@ with col5:
     st.markdown("**📡 Salud**\n\nSi el modelo se esta degradando con el tiempo y si toca reentrenar.")
 
 st.markdown(" ")
+fuente_label = "MLflow" if met.get("source") == "mlflow" else "datos locales"
 st.caption(
     f"Champion: {met.get('modelo_familia','')} · "
     f"{met.get('registry_name','')} {met.get('registry_version','')} · "
-    f"Evaluado: {met.get('fecha_evaluacion','')}"
+    f"Evaluado: {met.get('fecha_evaluacion','')} · "
+    f"Fuente: {fuente_label}"
 )
